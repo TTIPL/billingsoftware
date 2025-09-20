@@ -145,13 +145,7 @@ const UserList = () => {
                         >
                           Edit
                         </CButton>
-                        <CButton
-                          size="sm"
-                          color="danger"
-                          onClick={() => handleDelete(user.user_id)}
-                        >
-                          Delete
-                        </CButton>
+                        
                       </CTableDataCell>
                     </CTableRow>
                   ))}

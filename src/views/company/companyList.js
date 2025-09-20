@@ -127,13 +127,7 @@ const CompanyList = () => {
                         >
                           Edit
                         </CButton>
-                        <CButton
-                          size="sm"
-                          color="danger"
-                          onClick={() => handleDelete(c.company_id)}
-                        >
-                          Delete
-                        </CButton>
+                        
                       </CTableDataCell>
                     </CTableRow>
                   ))}

@@ -207,7 +207,7 @@ const ProductList = () => {
                     <CTableDataCell>{p.parent_product_name || '-'}</CTableDataCell>
                     <CTableDataCell>
                       <CButton size="sm" color="info" onClick={() => handleEdit(p)} className="me-1">Edit</CButton>
-                      <CButton size="sm" color="danger" onClick={() => handleDelete(p.prod_id)}>Delete</CButton>
+                      
                     </CTableDataCell>
                   </CTableRow>
                 ))}

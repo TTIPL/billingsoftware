@@ -161,9 +161,7 @@ const CustomerList = () => {
                       <CButton size="sm" color="info" onClick={() => handleEdit(cust)} className="me-1">
                         Edit
                       </CButton>
-                      <CButton size="sm" color="danger" onClick={() => handleDelete(cust.cust_id)}>
-                        Delete
-                      </CButton>
+                     
                     </CTableDataCell>
                   </CTableRow>
                 ))}

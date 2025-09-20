@@ -1,55 +1,328 @@
-import React, { Suspense, useEffect } from 'react'
-import { HashRouter, Route, Routes } from 'react-router-dom'
-import { useSelector } from 'react-redux'
-
-import { CSpinner, useColorModes } from '@coreui/react'
+// App.js
+import React, { useState, Suspense, useEffect } from 'react'
+import {
+  CButton,
+  CCard,
+  CCardBody,
+  CCardGroup,
+  CCol,
+  CContainer,
+  CForm,
+  CFormInput,
+  CInputGroup,
+  CInputGroupText,
+  CRow,
+  CSpinner,
+} from '@coreui/react'
+import CIcon from '@coreui/icons-react'
+import { cilLockLocked, cilUser } from '@coreui/icons'
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import './scss/style.scss'
+import axios from 'axios'
+import Reports from './views/billings/reports'
+import AppFooter from './components/AppFooter'
+import AppSidebar from './components/AppSidebar'
+import AppHeader from './components/AppHeader'
+import UserList from './views/users/userList'
+import BillingCreation from './views/billings/billingCreation'
+import ProductList from './views/products/productList'
+import QuantityType from './views/quantity/quantityType'
+import ParentProduct from './views/master_products/masterproductList'
+import CompanyList from './views/company/companyList'
+import CustomerList from './views/customer/customerList'
+import Dashboard from './views/dashboard/Dashboard'
 
-// Containers
-const DefaultLayout = React.lazy(() => import('./layout/DefaultLayout'))
+const isAuthenticated = () => {
+  return !!localStorage.getItem('token')
+}
 
-// Pages
-const Login = React.lazy(() => import('./views/pages/login/Login'))
-const Register = React.lazy(() => import('./views/pages/register/Register'))
-const Page404 = React.lazy(() => import('./views/pages/page404/Page404'))
-const Page500 = React.lazy(() => import('./views/pages/page500/Page500'))
+const PrivateRoute = ({ children }) => {
+   return isAuthenticated() ? children : <Navigate to="/login" />
+}
 
-const App = () => {
-  const { isColorModeSet, setColorMode } = useColorModes('coreui-free-react-admin-template-theme')
-  const storedTheme = useSelector((state) => state.theme)
+// 🔓 Login Page
+const Login = () => {
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const navigate = useNavigate()
 
-  useEffect(() => {
-    const urlParams = new URLSearchParams(window.location.href.split('?')[1])
-    const theme = urlParams.get('theme') && urlParams.get('theme').match(/^[A-Za-z0-9\s]+/)[0]
-    if (theme) {
-      setColorMode(theme)
+  const handleLogin = async (e) => {
+    e.preventDefault()
+    setError('')
+
+    try {
+      const response = await axios.post('http://localhost:5000/api/users/login', {
+        user_email: username,
+        user_password: password,
+      })
+
+      localStorage.setItem('token', response.data.token)
+      navigate('/dashboard')
+    } catch (err) {
+      setError('Invalid credentials')
     }
-
-    if (isColorModeSet()) {
-      return
-    }
-
-    setColorMode(storedTheme)
-  }, []) 
+  }
 
   return (
-    <HashRouter>
+    <div className="bg-body-tertiary min-vh-100 d-flex flex-row align-items-center">
+      <CContainer>
+        <CRow className="justify-content-center">
+          <CCol md={6}>
+            <CCardGroup>
+              <CCard className="p-4">
+                <CCardBody>
+                  <CForm onSubmit={handleLogin}>
+                    <h1>Login</h1>
+                    <p className="text-body-secondary">Sign In to your account</p>
+
+                    {error && <p className="text-danger">{error}</p>}
+
+                    <CInputGroup className="mb-3">
+                      <CInputGroupText>
+                        <CIcon icon={cilUser} />
+                      </CInputGroupText>
+                      <CFormInput
+                        placeholder="Email"
+                        autoComplete="username"
+                        value={username}
+                        onChange={(e) => setUsername(e.target.value)}
+                      />
+                    </CInputGroup>
+
+                    <CInputGroup className="mb-4">
+                      <CInputGroupText>
+                        <CIcon icon={cilLockLocked} />
+                      </CInputGroupText>
+                      <CFormInput
+                        type="password"
+                        placeholder="Password"
+                        autoComplete="current-password"
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                      />
+                    </CInputGroup>
+
+                    <CRow>
+                      <CCol xs={6}>
+                        <CButton type="submit" color="primary" className="px-4">
+                          Login
+                        </CButton>
+                      </CCol>
+                      <CCol xs={6} className="text-right">
+                     
+                      </CCol>
+                    </CRow>
+                  </CForm>
+                </CCardBody>
+              </CCard>
+            </CCardGroup>
+          </CCol>
+        </CRow>
+      </CContainer>
+    </div>
+  )
+}
+
+// // 🔐 Protected Page (Dashboard/Home)
+// const Dashboard = () => {
+//   const navigate = useNavigate()
+
+//   const handleLogout = () => {
+//     localStorage.removeItem('token')
+//     navigate('/login')
+//   }
+
+//   return (
+//     <div className="text-center mt-5">
+//       <h2>Welcome to Dashboard!</h2>
+//       <CButton color="danger" className="mt-3" onClick={handleLogout}>
+//         Logout
+//       </CButton>
+//     </div>
+//   )
+// }
+
+// 🔁 404 Page
+const Page404 = () => <h2 className="text-center mt-5">404 - Page Not Found</h2>
+
+// 🧠 Main App Component
+const App = () => {
+  return (
+    <Router>
       <Suspense
         fallback={
-          <div className="pt-3 text-center">
+          <div className="pt-5 text-center">
             <CSpinner color="primary" variant="grow" />
           </div>
         }
       >
         <Routes>
-          <Route exact path="/login" name="Login Page" element={<Login />} />
-          <Route exact path="/register" name="Register Page" element={<Register />} />
-          <Route exact path="/404" name="Page 404" element={<Page404 />} />
-          <Route exact path="/500" name="Page 500" element={<Page500 />} />
-          <Route path="*" name="Home" element={<DefaultLayout />} />
+          <Route path="/login" element={<Login />} />
+          <Route
+            path="/dashboard"
+            element={
+              <PrivateRoute>
+                <div>
+                  <AppSidebar />
+                  <div className="wrapper d-flex flex-column min-vh-100">
+                    <AppHeader />
+                    <div className="body flex-grow-1 p-3">
+                      <Dashboard/>
+                    </div>
+                    <AppFooter />
+                  </div>
+                </div>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/reports"
+            element={
+              <PrivateRoute>
+                <div>
+                  <AppSidebar />
+                  <div className="wrapper d-flex flex-column min-vh-100">
+                    <AppHeader />
+                    <div className="body flex-grow-1 p-3">
+                      <Reports />
+                    </div>
+                    <AppFooter />
+                  </div>
+                </div>
+              </PrivateRoute>
+            }
+          />
+          <Route
+            path="/userList"
+            element={
+              <PrivateRoute>
+                <div>
+                  <AppSidebar />
+                  <div className="wrapper d-flex flex-column min-vh-100">
+                    <AppHeader />
+                    <div className="body flex-grow-1 p-3">
+                      <UserList />
+                    </div>
+                    <AppFooter />
+                  </div>
+                </div>
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/billingList"
+            element={
+              <PrivateRoute>
+                <div>
+                  <AppSidebar />
+                  <div className="wrapper d-flex flex-column min-vh-100">
+                    <AppHeader />
+                    <div className="body flex-grow-1 p-3">
+                      <BillingCreation />
+                    </div>
+                    <AppFooter />
+                  </div>
+                </div>
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/productlist"
+            element={
+              <PrivateRoute>
+                <div>
+                  <AppSidebar />
+                  <div className="wrapper d-flex flex-column min-vh-100">
+                    <AppHeader />
+                    <div className="body flex-grow-1 p-3">
+                      <ProductList />
+                    </div>
+                    <AppFooter />
+                  </div>
+                </div>
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/quantityType"
+            element={
+              <PrivateRoute>
+                <div>
+                  <AppSidebar />
+                  <div className="wrapper d-flex flex-column min-vh-100">
+                    <AppHeader />
+                    <div className="body flex-grow-1 p-3">
+                      <QuantityType />
+                    </div>
+                    <AppFooter />
+                  </div>
+                </div>
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/parentProduct"
+            element={
+              <PrivateRoute>
+                <div>
+                  <AppSidebar />
+                  <div className="wrapper d-flex flex-column min-vh-100">
+                    <AppHeader />
+                    <div className="body flex-grow-1 p-3">
+                      <ParentProduct />
+                    </div>
+                    <AppFooter />
+                  </div>
+                </div>
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/companyList"
+            element={
+              <PrivateRoute>
+                <div>
+                  <AppSidebar />
+                  <div className="wrapper d-flex flex-column min-vh-100">
+                    <AppHeader />
+                    <div className="body flex-grow-1 p-3">
+                      <CompanyList />
+                    </div>
+                    <AppFooter />
+                  </div>
+                </div>
+              </PrivateRoute>
+            }
+          />
+
+          <Route
+            path="/customerList"
+            element={
+              <PrivateRoute>
+                <div>
+                  <AppSidebar />
+                  <div className="wrapper d-flex flex-column min-vh-100">
+                    <AppHeader />
+                    <div className="body flex-grow-1 p-3">
+                      <CustomerList />
+                    </div>
+                    <AppFooter />
+                  </div>
+                </div>
+              </PrivateRoute>
+            }
+          />
+
+          <Route path="*" element={<Page404 />} />
         </Routes>
       </Suspense>
-    </HashRouter>
+    </Router>
   )
 }
 

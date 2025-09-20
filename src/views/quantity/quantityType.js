@@ -116,9 +116,7 @@ const QuantityType = () => {
                       <CButton size="sm" color="info" onClick={() => handleEdit(type)} className="me-2">
                         Edit
                       </CButton>
-                      <CButton size="sm" color="danger" onClick={() => handleDelete(type.quantity_type_id)}>
-                        Delete
-                      </CButton>
+                      
                     </CTableDataCell>
                   </CTableRow>
                 ))}
