@@ -22,12 +22,14 @@ import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 import axios from 'axios'
 import { createBilling } from '../services/api'
+import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 ///import 'jspdf-autotable'; // This *extends* jsPDF with the autoTable plugin
 
 
 // Setup pdfMake fonts
 
 const BillingCreation = () => {
+  const navigate = useNavigate();
   const [billingInfo, setBillingInfo] = useState({
     description: '',
     customerName: '',
@@ -240,20 +242,21 @@ const BillingCreation = () => {
   const totalAmount = form.products.reduce((sum, item) => sum + item.total, 0)
 
 
-
-
-
   const handleSubmit = async () => {
     try {
       const response = await createBilling(form);
       alert("Billing created successfully!");
+      navigate('/dashboard')
+      
     } catch (error) {
       alert("Failed to create billing");
     }
   };
-
-
-  const generatePDF = () => {
+const generatePDFDownload = () => {
+  generatePDFWithGSTLeftAligned(form,10);
+}
+ 
+  const generatePDFWithLable = () => {
     const doc = new jsPDF()
     const pageWidth = doc.internal.pageSize.getWidth()
 
@@ -288,10 +291,7 @@ const BillingCreation = () => {
     doc.setFontSize(10)
     doc.text('No.2, Saravana Complex, Nagalapuram Road, Uthukottai - 602 026.', 55, 42)
 
-    // Customer and Work Info
-    doc.setFontSize(11)
-    doc.text(`Customer Name: ${form.cust_name}`, 14, 55)
-    doc.text(`Description: ${form.description}`, 14, 61)
+
 
     // Table
     autoTable(doc, {
@@ -347,6 +347,118 @@ const BillingCreation = () => {
     const pdfBlobUrl = doc.output('bloburl')
     window.open(pdfBlobUrl, '_blank')
   }
+
+// Helper function to convert number to words (simple version, customize as needed)
+function numberToWords(num) {
+  const a = [
+    '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
+    'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen',
+    'Seventeen', 'Eighteen', 'Nineteen'
+  ];
+  const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
+
+  if ((num = num.toString()).length > 9) return 'Overflow';
+  const n = ('000000000' + num).substr(-9).match(/^(\d{3})(\d{3})(\d{3})$/);
+  if (!n) return; 
+  let str = '';
+  str += (parseInt(n[1]) !== 0) ? (a[Number(n[1])] || b[n[1][0]] + ' ' + a[n[1][1]]) + ' Million ' : '';
+  str += (parseInt(n[2]) !== 0) ? (a[Number(n[2])] || b[n[2][0]] + ' ' + a[n[2][1]]) + ' Thousand ' : '';
+  str += (parseInt(n[3]) !== 0) ? (a[Number(n[3])] || b[n[3][0]] + ' ' + a[n[3][1]]) : '';
+  return str.trim() + ' only';
+}
+
+const generatePDFWithGSTLeftAligned = (form, gstPercent) => {
+  const doc = new jsPDF()
+  const gstRate = gstPercent / 100
+
+  // Calculate total amount from products
+  const totalAmount = form.products.reduce((sum, p) => sum + Number(p.total), 0)
+
+  // Calculate CGST and SGST (both same gstPercent)
+  const cgstAmount = totalAmount * gstRate
+  const sgstAmount = totalAmount * gstRate
+  const grandTotal = totalAmount + cgstAmount + sgstAmount
+
+  // Starting positions
+  const startY = 70
+
+ 
+
+  autoTable(doc, {
+    startY,
+    head: [['S.NO', 'PARTICULARS', 'QTY', 'RATE', 'AMOUNT']],
+    body: form.products.map((p, i) => [
+      i + 1,
+      p.productName,
+      p.qty,
+      p.price,
+      p.total,
+    ]),
+    styles: {
+      fontSize: 10,
+      cellPadding: { top: 3, right: 3, bottom: 3, left: 3 },
+      valign: 'middle',
+      halign: 'center',
+      lineColor: [0, 0, 0],
+      lineWidth: 0.3,
+    },
+    headStyles: {
+      fillColor: [220, 220, 220],
+      textColor: [0, 0, 0],
+      fontStyle: 'bold',
+      halign: 'center',
+      lineWidth: 0.5,
+      lineColor: [0, 0, 0],
+    },
+    bodyStyles: {
+      fillColor: false,
+      textColor: [0, 0, 0],
+    },
+    columnStyles: {
+      0: { cellWidth: 15, halign: 'center' }, // S.NO
+      1: { cellWidth: 90, halign: 'left' },   // PARTICULARS
+      2: { cellWidth: 20, halign: 'center' }, // QTY
+      3: { cellWidth: 25, halign: 'right' },  // RATE
+      4: { cellWidth: 30, halign: 'right' },  // AMOUNT
+    },
+    didDrawPage: (data) => {
+      const finalY = data.cursor.y + 10
+      const marginLeft = data.settings.margin.left
+    
+      doc.setFontSize(11)
+      doc.setFont('helvetica', 'bold')
+      doc.text('Total Quoted Amount:', marginLeft, finalY)
+    
+      doc.setFont('helvetica', 'normal')
+      doc.text(`Total Amount: ${totalAmount.toFixed(2)}`, marginLeft, finalY + 8)
+    
+      if (gstPercent > 0) {
+        doc.text(`CGST (${gstPercent}%): ${cgstAmount.toFixed(2)}`, marginLeft, finalY + 16)
+        doc.text(`SGST (${gstPercent}%): ${sgstAmount.toFixed(2)}`, marginLeft, finalY + 24)
+    
+        doc.setFont('helvetica', 'bold')
+        doc.text(`Grand Total (incl. GST): ${grandTotal.toFixed(2)}`, marginLeft, finalY + 36)
+    
+        doc.setFont('helvetica', 'normal')
+        doc.setFontSize(9)
+       
+      } else {
+        // GST percent is 0, so show only Grand Total which equals totalAmount
+        // doc.setFont('helvetica', 'bold')
+        // doc.text(`Grand Total: ${totalAmount.toFixed(2)}`, marginLeft, finalY + 16)
+    
+        // doc.setFont('helvetica', 'normal')
+        // doc.setFontSize(9)
+        // const amountInWords = numberToWords(totalAmount)
+        // doc.text(`Amount in words: ${amountInWords}`, marginLeft, finalY + 24)
+      }
+    },
+    
+  })
+
+  const pdfBlobUrl = doc.output('bloburl')
+  window.open(pdfBlobUrl, '_blank')
+}
 
   return (
     <CRow>
@@ -537,7 +649,7 @@ const BillingCreation = () => {
 
       <CRow className="mt-4">
         <CCol className="d-flex justify-content-end">
-          <CButton color="success" onClick={generatePDF} style={{margin:"10px"}}>
+          <CButton color="success" onClick={generatePDFDownload} style={{margin:"10px"}}>
             Download PDF
           </CButton>
           <CButton color="primary" onClick={handleSubmit} style={{margin:"10px"}}>

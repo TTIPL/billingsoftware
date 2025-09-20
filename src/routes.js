@@ -60,7 +60,7 @@ const parentProduct  = React.lazy(() => import('./views/master_products/masterpr
 const BillingCreation  = React.lazy(() => import('./views/billings/billingCreation'))
 const quantityType  = React.lazy(() => import('./views/quantity/quantityType'))
 const Reports  = React.lazy(() => import('./views/billings/reports'))
-
+const MasterList  = React.lazy(() => import('./views/master/masterList'))
 
 const routes = [
   { path: '/', exact: true, name: 'Home' },
@@ -118,6 +118,7 @@ const routes = [
   { path: '/parentProduct', name: 'Parent Product', element: parentProduct },
   { path: '/quantityType', name: 'Quantity Type', element: quantityType },
   { path: '/reports', name: 'Reports', element: Reports },
+  { path: '/masters', name: 'MasterList', element: MasterList },
   parentProduct
 ]
 

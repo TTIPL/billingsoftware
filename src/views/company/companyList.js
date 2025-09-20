@@ -94,9 +94,9 @@ const CompanyList = () => {
           <CCard className="mb-4">
             <CCardHeader className="d-flex justify-content-between">
               <strong>Company Table</strong>
-              <CButton color="primary" onClick={() => setVisible(true)}>
+              {/* <CButton color="primary" onClick={() => setVisible(true)}>
                 + Add Company
-              </CButton>
+              </CButton> */}
             </CCardHeader>
             <CCardBody>
               <CTable bordered hover responsive>

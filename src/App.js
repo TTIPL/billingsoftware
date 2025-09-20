@@ -31,6 +31,7 @@ import ParentProduct from './views/master_products/masterproductList'
 import CompanyList from './views/company/companyList'
 import CustomerList from './views/customer/customerList'
 import Dashboard from './views/dashboard/Dashboard'
+import MasterList from './views/master/masterList'
 
 const isAuthenticated = () => {
   return !!localStorage.getItem('token')
@@ -40,7 +41,6 @@ const PrivateRoute = ({ children }) => {
    return isAuthenticated() ? children : <Navigate to="/login" />
 }
 
-// 🔓 Login Page
 const Login = () => {
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
@@ -58,6 +58,9 @@ const Login = () => {
       })
 
       localStorage.setItem('token', response.data.token)
+      const resp = await axios.get('http://localhost:5000/api/masters/')
+      localStorage.setItem('masters', JSON.stringify(resp.data))
+
       navigate('/dashboard')
     } catch (err) {
       setError('Invalid credentials')
@@ -124,29 +127,9 @@ const Login = () => {
   )
 }
 
-// // 🔐 Protected Page (Dashboard/Home)
-// const Dashboard = () => {
-//   const navigate = useNavigate()
 
-//   const handleLogout = () => {
-//     localStorage.removeItem('token')
-//     navigate('/login')
-//   }
-
-//   return (
-//     <div className="text-center mt-5">
-//       <h2>Welcome to Dashboard!</h2>
-//       <CButton color="danger" className="mt-3" onClick={handleLogout}>
-//         Logout
-//       </CButton>
-//     </div>
-//   )
-// }
-
-// 🔁 404 Page
 const Page404 = () => <h2 className="text-center mt-5">404 - Page Not Found</h2>
 
-// 🧠 Main App Component
 const App = () => {
   return (
     <Router>
@@ -311,6 +294,24 @@ const App = () => {
                     <AppHeader />
                     <div className="body flex-grow-1 p-3">
                       <CustomerList />
+                    </div>
+                    <AppFooter />
+                  </div>
+                </div>
+              </PrivateRoute>
+            }
+          />
+
+<Route
+            path="/masterList"
+            element={
+              <PrivateRoute>
+                <div>
+                  <AppSidebar />
+                  <div className="wrapper d-flex flex-column min-vh-100">
+                    <AppHeader />
+                    <div className="body flex-grow-1 p-3">
+                      <MasterList/>
                     </div>
                     <AppFooter />
                   </div>

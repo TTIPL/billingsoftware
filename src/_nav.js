@@ -38,9 +38,9 @@ const _nav = [
   },
   {
     component: CNavItem,
-    name: 'Parent Products',
-    to: '/parentProduct',
-    icon: <CIcon icon={cilStar} customClassName="nav-icon" />,
+    name: 'Masters',
+    to: '/masterList',
+    icon: <CIcon icon={cilCalculator} customClassName="nav-icon" />,
   },
   {
     component: CNavItem,
@@ -48,6 +48,13 @@ const _nav = [
     to: '/quantityType',
     icon: <CIcon icon={cilStar} customClassName="nav-icon" />,
   },
+  {
+    component: CNavItem,
+    name: 'Parent Products',
+    to: '/parentProduct',
+    icon: <CIcon icon={cilStar} customClassName="nav-icon" />,
+  },
+
   {
     component: CNavItem,
     name: 'Products',

@@ -66,7 +66,19 @@ const Reports = () => {
       .then((res) => {
         let billingData = res.data.data
         let bill = data
-        generateComparativePDF(billingData, bill)
+
+
+        const mastersData = JSON.parse(localStorage.getItem('masters') || '[]')
+        const masterSettings = Array.isArray(mastersData) ? mastersData[0] : mastersData
+          if (masterSettings && masterSettings.gst_support) {
+            const gstValueString = masterSettings.gst_value || '0'
+            const gstPercent = parseFloat(gstValueString.replace('%', '')) || 0;
+            console.log(gstPercent)
+            generateComparativePDFWithGST(billingData, bill, gstPercent)
+          } else {
+            generateComparativePDF(billingData, bill)
+          }
+        
       })
       .catch((err) => console.error(err))
   }
@@ -134,29 +146,34 @@ const Reports = () => {
       startY: 40,
       head: [
         [
-          'No',
-          'Description Of Work',
-          'Qty',
-          'Rate by Sri Kumaran',
+          { content: 'No', rowSpan: 2, styles: { halign: 'center' } },
+          { content: 'Description Of Work', rowSpan: 2 },
+          { content: 'Qty', rowSpan: 2, styles: { halign: 'center' } },
+          { content: 'Rate by Sri Kumaran', colSpan: 2, styles: { halign: 'center' } },
+          { content: 'Rate by Santhosh', colSpan: 2, styles: { halign: 'center' } },
+          { content: 'Rate by Raghavendra', colSpan: 2, styles: { halign: 'center' } },
+          { content: 'Remarks', rowSpan: 2 },
+        ],
+        [
+          'Rate',
           'Amount',
-          'Rate by Santhosh',
+          'Rate',
           'Amount',
-          'Rate by Raghavendra',
+          'Rate',
           'Amount',
-          'Remarks',
         ],
       ],
       body: rows,
       styles: {
         fontSize: 8,
-        lineColor: [0, 0, 0], // black border
-        lineWidth: 0.2, // thin border
-        halign: 'center', // optional: center align all text
+        lineColor: [0, 0, 0],
+        lineWidth: 0.2,
+        halign: 'center',
       },
       headStyles: {
         fillColor: [220, 220, 220],
         textColor: 0,
-        lineColor: [0, 0, 0], // black border for header
+        lineColor: [0, 0, 0],
         lineWidth: 0.5,
       },
       columnStyles: {
@@ -171,8 +188,9 @@ const Reports = () => {
         8: { cellWidth: 18 },
         9: { cellWidth: 18 },
       },
-      theme: 'grid', // Ensure full grid with borders
+      theme: 'grid',
     })
+    
 
     const finalY = doc.lastAutoTable.finalY + 10
 
@@ -210,6 +228,174 @@ const Reports = () => {
     const blobURL = doc.output('bloburl')
     window.open(blobURL)
   }
+
+  const generateComparativePDFWithGST = (data, bill,gstPercent) => {
+    const doc = new jsPDF()
+
+    doc.setFontSize(12)
+    doc.setFont('helvetica', 'bold')
+    doc.text('COMPARATIVE STATEMENT', 75, 10)
+
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.text(`Name Of The Union     : ${bill.cust_address}`, 14, 20)
+    doc.text(`Name Of The Panchayat : ${bill.cust_name}`, 14, 26)
+    doc.text(`Name Of the Work      : ${bill.billing_description}`, 14, 32)
+
+    const grouped = {}
+    const totals = {
+      'Sri Kumaran': 0,
+      'Santhosh Enterprises': 0,
+      'Sri Raghavendra': 0,
+    }
+
+    data.forEach((item) => {
+      const key = item.prod_name
+      if (!grouped[key]) grouped[key] = {}
+
+      grouped[key][item.company_name] = {
+        qty: item.prod_qty,
+        rate: parseFloat(item.prod_price),
+        amount: parseFloat(item.total_amt),
+      }
+
+      totals[item.company_name] += parseFloat(item.total_amt)
+    })
+
+    const companies = {
+      kumaran: 'Sri Kumaran',
+      santhosh: 'Santhosh Enterprises',
+      raghavendra: 'Sri Raghavendra',
+    }
+
+    const rows = []
+    let index = 1
+
+    for (const prodName in grouped) {
+      const row = grouped[prodName]
+
+      rows.push([
+        index++,
+        prodName,
+        row[companies.kumaran]?.qty || '-',
+        row[companies.kumaran]?.rate?.toFixed(2) || '-',
+        row[companies.kumaran]?.amount?.toFixed(2) || '-',
+        row[companies.santhosh]?.rate?.toFixed(2) || '-',
+        row[companies.santhosh]?.amount?.toFixed(2) || '-',
+        row[companies.raghavendra]?.rate?.toFixed(2) || '-',
+        row[companies.raghavendra]?.amount?.toFixed(2) || '-',
+        '',
+      ])
+    }
+
+    autoTable(doc, {
+      startY: 40,
+      head: [
+        [
+          { content: 'No', rowSpan: 2, styles: { halign: 'center' } },
+          { content: 'Description Of Work', rowSpan: 2 },
+          { content: 'Qty', rowSpan: 2, styles: { halign: 'center' } },
+          { content: 'Rate by Sri Kumaran', colSpan: 2, styles: { halign: 'center' } },
+          { content: 'Rate by Santhosh', colSpan: 2, styles: { halign: 'center' } },
+          { content: 'Rate by Raghavendra', colSpan: 2, styles: { halign: 'center' } },
+          { content: 'Remarks', rowSpan: 2 },
+        ],
+        [
+          'Rate',
+          'Amount',
+          'Rate',
+          'Amount',
+          'Rate',
+          'Amount',
+        ],
+      ],
+      body: rows,
+      styles: {
+        fontSize: 8,
+        lineColor: [0, 0, 0],
+        lineWidth: 0.2,
+        halign: 'center',
+      },
+      headStyles: {
+        fillColor: [220, 220, 220],
+        textColor: 0,
+        lineColor: [0, 0, 0],
+        lineWidth: 0.5,
+      },
+      columnStyles: {
+        0: { cellWidth: 10 },
+        1: { cellWidth: 50 },
+        2: { cellWidth: 12 },
+        3: { cellWidth: 18 },
+        4: { cellWidth: 18 },
+        5: { cellWidth: 18 },
+        6: { cellWidth: 18 },
+        7: { cellWidth: 18 },
+        8: { cellWidth: 18 },
+        9: { cellWidth: 18 },
+      },
+      theme: 'grid',
+    })
+    
+
+    const gstRate = gstPercent / 100;
+    const gstDetails = {};
+    for (const company of Object.values(companies)) {
+      const cgst = totals[company] * gstRate;  // full gstPercent for CGST
+      const sgst = totals[company] * gstRate;  // full gstPercent for SGST
+      const totalWithGst = totals[company] + cgst + sgst;
+      gstDetails[company] = {
+        cgst,
+        sgst,
+        totalWithGst,
+      };
+    }
+    
+    
+    const finalY = doc.lastAutoTable.finalY + 10;
+    
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Total Quoted Amount:', 14, finalY);
+    
+    doc.setFont('helvetica', 'normal');
+    
+    const lineSpacing = 6;
+    let currentY = finalY + lineSpacing;
+    
+    // Show totals without GST
+    doc.text(`Sri Kumaran: ${totals[companies.kumaran].toLocaleString('en-IN')}`, 14, currentY);
+    currentY += lineSpacing;
+    doc.text(`Santhosh Enterprises: ${totals[companies.santhosh].toLocaleString('en-IN')}`, 14, currentY);
+    currentY += lineSpacing;
+    doc.text(`Sri Raghavendra: ${totals[companies.raghavendra].toLocaleString('en-IN')}`, 14, currentY);
+    currentY += lineSpacing * 2;
+    
+    // Show CGST, SGST, and total with GST for each company
+    for (const company of Object.values(companies)) {
+      const { cgst, sgst, totalWithGst } = gstDetails[company];
+      doc.text(`${company} CGST (${gstPercent}%): ${cgst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 14, currentY);
+      currentY += lineSpacing;
+      doc.text(`${company} SGST (${gstPercent}%): ${sgst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 14, currentY);
+      currentY += lineSpacing;
+      doc.setFont('helvetica', 'bold');
+      doc.text(`${company} Total Amount (incl. GST): ${totalWithGst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 14, currentY);
+      doc.setFont('helvetica', 'normal');
+      currentY += lineSpacing * 2;
+    }
+    
+    const lowestCompany = Object.keys(totals).reduce((a, b) => (totals[a] < totals[b] ? a : b));
+    doc.setFont('helvetica', 'bold');
+    doc.text(`Lowest Rate For: ${lowestCompany.toUpperCase()}`, 14, currentY);
+    
+
+    const blobURL = doc.output('bloburl')
+    window.open(blobURL)
+  }
+
+
+
+
 
   const formatDateUTC = (dateString) => {
     if (!dateString) return '';

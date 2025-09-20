@@ -1,23 +1,44 @@
-import React, { useEffect, useRef } from 'react'
 import PropTypes from 'prop-types'
-
+import React, { useEffect, useRef,useState } from 'react'
+import { cilOptions } from '@coreui/icons'
+import CIcon from '@coreui/icons-react'
 import {
-  CRow,
   CCol,
   CDropdown,
-  CDropdownMenu,
   CDropdownItem,
+  CDropdownMenu,
   CDropdownToggle,
+  CRow,
   CWidgetStatsA,
 } from '@coreui/react'
-import { getStyle } from '@coreui/utils'
 import { CChartBar, CChartLine } from '@coreui/react-chartjs'
-import CIcon from '@coreui/icons-react'
-import { cilArrowBottom, cilArrowTop, cilOptions } from '@coreui/icons'
+import { getStyle } from '@coreui/utils'
+import axios from 'axios'
 
 const WidgetsDropdown = (props) => {
   const widgetChartRef1 = useRef(null)
   const widgetChartRef2 = useRef(null)
+
+  const [counts, setCounts] = useState({
+    products: 0,
+    parentProducts: 0,
+    companies: 0,
+    billings: 0,
+  });
+
+  useEffect(() => {
+    const fetchCounts = async () => {
+      try {
+        const res = await axios.post('http://localhost:5000/api/users/counts',{});
+        setCounts(res.data);
+      } catch (err) {
+        console.error('Failed to fetch counts', err);
+      }
+    };
+
+    fetchCounts();
+  }, []);
+
 
   useEffect(() => {
     document.documentElement.addEventListener('ColorSchemeChange', () => {
@@ -44,10 +65,10 @@ const WidgetsDropdown = (props) => {
           color="primary"
           value={
             <>
-             100
+             {counts.parentProducts}
             </>
           }
-          title="Total Products"
+          title="Total Parent Products"
           action={
             <CDropdown alignment="end">
               <CDropdownToggle color="transparent" caret={false} className="text-white p-0">
@@ -131,10 +152,10 @@ const WidgetsDropdown = (props) => {
           color="info"
           value={
             <>
-             250
+            {counts.products}
             </>
           }
-          title="Total Billings"
+          title="Total Products"
           action={
             <CDropdown alignment="end">
               <CDropdownToggle color="transparent" caret={false} className="text-white p-0">
@@ -217,10 +238,10 @@ const WidgetsDropdown = (props) => {
           color="warning"
           value={
             <>
-             150
+            {counts.companies}
             </>
           }
-          title="Total Customer"
+          title="Total Company"
           action={
             <CDropdown alignment="end">
               <CDropdownToggle color="transparent" caret={false} className="text-white p-0">
@@ -286,10 +307,10 @@ const WidgetsDropdown = (props) => {
           color="danger"
           value={
             <>
-              400
+              {counts.billings}
             </>
           }
-          title="Total Approved Billings This Year"
+          title="Total Billings"
           action={
             <CDropdown alignment="end">
               <CDropdownToggle color="transparent" caret={false} className="text-white p-0">

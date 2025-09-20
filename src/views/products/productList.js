@@ -50,11 +50,70 @@ const ProductList = () => {
   };
 
   const handleChange = (e) => {
-    setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
+    const { name, value } = e.target;
+    const roundToTwo = (num) => Math.round(num);
+  
+    if (name === "prod_price_1") {
+      const price1 = parseFloat(value) || 0;
+      const price2 = roundToTwo(price1 * 1.02); // +2%
+      const price3 = roundToTwo(price1 * 1.03); // +3%
+  
+      setForm(prev => ({
+        ...prev,
+        prod_price_1: value,
+        prod_price_2: price2,
+        prod_price_3: price3,
+      }));
+    } else {
+      setForm(prev => ({
+        ...prev,
+        [name]: value,
+      }));
+    }
   };
+  
+
+  
+  const validateForm = (form) => {
+    const errors = {}
+  
+    if (!form.prod_name.trim()) {
+      errors.prod_name = "Product name is required"
+    }
+  
+    if (!form.prod_price_1 || isNaN(form.prod_price_1) || Number(form.prod_price_1) <= 0) {
+      errors.prod_price_1 = "Price 1 must be a number greater than 0"
+    }
+  
+    if (!form.prod_price_2 || isNaN(form.prod_price_2) || Number(form.prod_price_2) <= 0) {
+      errors.prod_price_2 = "Price 2 must be a number greater than 0"
+    }
+  
+    if (!form.prod_price_3 || isNaN(form.prod_price_3) || Number(form.prod_price_3) <= 0) {
+      errors.prod_price_3 = "Price 3 must be a number greater than 0"
+    }
+  
+    if (!form.qty_id) {
+      errors.qty_id = "Quantity ID is required"
+    }
+  
+    if (!form.parent_produc_id) {
+      errors.parent_produc_id = "Parent Product ID is required"
+    }
+  
+    return errors
+  }
+  
+
 
   const handleSubmit = (e) => {
     e.preventDefault();
+    const errors = validateForm(form)
+    if (Object.keys(errors).length > 0) {
+      const errorMessages = Object.values(errors).join("\n")
+      alert(errorMessages)
+      return
+    }
     if (editId) {
       axios.put(`http://localhost:5000/api/products/${editId}`, form)
         .then(() => {
@@ -82,15 +141,7 @@ const ProductList = () => {
     setEditId(product.prod_id);
   };
 
-  const handleDelete = (id) => {
-    if (window.confirm('Confirm delete?')) {
-      axios.delete(`http://localhost:5000/api/products/${id}`)
-        .then(() => {
-          fetchProducts();
-          setMessage('Product deleted');
-        });
-    }
-  };
+
 
   return (
     <CRow>
@@ -126,6 +177,7 @@ const ProductList = () => {
                     value={form.prod_price_2}
                     onChange={handleChange}
                     label="Price 2"
+                    disabled
                   />
                 </CCol>
                 <CCol md={4} className="mt-2">
@@ -135,6 +187,7 @@ const ProductList = () => {
                     value={form.prod_price_3}
                     onChange={handleChange}
                     label="Price 3"
+                    disabled
                   />
                 </CCol>
                 <CCol md={4} className="mt-2">
