@@ -23,6 +23,7 @@ import autoTable from 'jspdf-autotable'
 import axios from 'axios'
 import { createBilling } from '../services/api'
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
+import { api_url } from '../../../config'
 ///import 'jspdf-autotable'; // This *extends* jsPDF with the autoTable plugin
 
 
@@ -63,20 +64,20 @@ const BillingCreation = () => {
 
   const fetchParentProducts = () => {
     axios
-      .get('http://localhost:5000/api/parent-products')
+      .get(`${api_url}parent-products`)
       .then((res) => setParentList(res.data))
       .catch((err) => console.error(err))
   }
 
   const fetchCustomers = () => {
     axios
-      .get('http://localhost:5000/api/customers')
+      .get(`${api_url}customers`)
       .then((res) => setCustomerList(res.data))
       .catch((err) => console.error(err))
   }
 
   const fetchgetBillingDetails = () => {
-    axios.get(`http://localhost:5000/api/products/billing-details/2`)
+    axios.get(`${api_url}products/billing-details/2`)
       .then((res) => setBillings(res.data.data))
       .catch((err) => console.error(err))
   }
@@ -206,7 +207,7 @@ const BillingCreation = () => {
 
   async function fetchProductsByParent(parentId) {
     try {
-      const res = await axios.get(`http://localhost:5000/api/products/by-parent/${parentId}`);
+      const res = await axios.get(`${api_url}products/by-parent/${parentId}`);
       const options = res.data.map((p) => ({
         value: p.prod_id,
         label: p.prod_name,

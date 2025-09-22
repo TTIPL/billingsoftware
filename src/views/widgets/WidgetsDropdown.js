@@ -14,6 +14,7 @@ import {
 import { CChartBar, CChartLine } from '@coreui/react-chartjs'
 import { getStyle } from '@coreui/utils'
 import axios from 'axios'
+import { api_url } from '../../../config'
 
 const WidgetsDropdown = (props) => {
   const widgetChartRef1 = useRef(null)
@@ -29,7 +30,7 @@ const WidgetsDropdown = (props) => {
   useEffect(() => {
     const fetchCounts = async () => {
       try {
-        const res = await axios.post('http://localhost:5000/api/users/counts',{});
+        const res = await axios.post(`${api_url}users/counts`,{});
         setCounts(res.data);
       } catch (err) {
         console.error('Failed to fetch counts', err);

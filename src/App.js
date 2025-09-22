@@ -32,6 +32,7 @@ import CompanyList from './views/company/companyList'
 import CustomerList from './views/customer/customerList'
 import Dashboard from './views/dashboard/Dashboard'
 import MasterList from './views/master/masterList'
+import { api_url } from '../config'
 
 const isAuthenticated = () => {
   return !!localStorage.getItem('token')
@@ -52,13 +53,13 @@ const Login = () => {
     setError('')
 
     try {
-      const response = await axios.post('http://localhost:5000/api/users/login', {
+      const response = await axios.post(`${api_url}users/login`, {
         user_email: username,
         user_password: password,
       })
 
       localStorage.setItem('token', response.data.token)
-      const resp = await axios.get('http://localhost:5000/api/masters/')
+      const resp = await axios.get(`${api_url}masters/`)
       localStorage.setItem('masters', JSON.stringify(resp.data))
 
       navigate('/dashboard')

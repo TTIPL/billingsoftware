@@ -6,6 +6,7 @@ import {
   CTableRow, CAlert,
 } from '@coreui/react';
 import axios from 'axios';
+import { api_url } from '../../../config';
 
 const ParentProduct = () => {
   const [products, setProducts] = useState([]);
@@ -13,7 +14,7 @@ const ParentProduct = () => {
   const [editId, setEditId] = useState(null);
   const [message, setMessage] = useState('');
 
-  const API = 'http://localhost:5000/api/parent-products';
+  const API = `${api_url}parent-products`;
 
   useEffect(() => {
     fetchProducts();

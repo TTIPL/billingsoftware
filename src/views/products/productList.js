@@ -5,6 +5,7 @@ import {
   CForm, CFormInput, CButton, CAlert, CFormSelect
 } from '@coreui/react';
 import axios from 'axios';
+import { api_url } from '../../../config';
 
 const initialForm = {
   prod_name: '',
@@ -32,19 +33,19 @@ const ProductList = () => {
   }, []);
 
   const fetchProducts = () => {
-    axios.get('http://localhost:5000/api/products')
+    axios.get(`${api_url}products`)
       .then(res => setProducts(res.data))
       .catch(err => console.error(err));
   };
 
   const fetchQtyTypes = () => {
-    axios.get('http://localhost:5000/api/quantity-types')
+    axios.get(`${api_url}quantity-types`)
       .then(res => setQtyList(res.data))
       .catch(err => console.error(err));
   };
 
   const fetchParentProducts = () => {
-    axios.get('http://localhost:5000/api/parent-products')
+    axios.get(`${api_url}parent-products`)
       .then(res => setParentList(res.data))
       .catch(err => console.error(err));
   };
@@ -115,14 +116,14 @@ const ProductList = () => {
       return
     }
     if (editId) {
-      axios.put(`http://localhost:5000/api/products/${editId}`, form)
+      axios.put(`${api_url}products/${editId}`, form)
         .then(() => {
           fetchProducts();
           resetForm();
           setMessage('Product updated');
         });
     } else {
-      axios.post('http://localhost:5000/api/products', form)
+      axios.post(`${api_url}products`, form)
         .then(() => {
           fetchProducts();
           resetForm();

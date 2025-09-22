@@ -21,6 +21,7 @@ import {
   CFormInput,
 } from '@coreui/react'
 import axios from 'axios'
+import { api_url } from '../../../config'
 
 const UserList = () => {
   const [users, setUsers] = useState([])
@@ -35,7 +36,7 @@ const UserList = () => {
     user_password: '', // ✅ added password
   })
 
-  const API_URL = 'http://localhost:5000/api/users'
+  const API_URL = `${api_url}users`;
 
   const fetchUsers = async () => {
     const res = await axios.get(API_URL)

@@ -5,6 +5,7 @@ import {
   CTableDataCell, CTableHead, CTableHeaderCell, CTableRow, CAlert,
 } from '@coreui/react'
 import axios from 'axios'
+import { api_url } from '../../../config'
 
 const CustomerList = () => {
   const [customers, setCustomers] = useState([])
@@ -28,7 +29,7 @@ const CustomerList = () => {
   }, [])
 
   const fetchCustomers = () => {
-    axios.get('http://localhost:5000/api/customers')
+    axios.get(`${api_url}customers`)
       .then((res) => setCustomers(res.data))
       .catch((err) => console.error('Fetch failed:', err))
   }
@@ -40,7 +41,7 @@ const CustomerList = () => {
   const handleSubmit = (e) => {
     e.preventDefault()
     if (isEdit) {
-      axios.put(`http://localhost:5000/api/customers/${form.cust_id}`, form)
+      axios.put(`${api_url}customers/${form.cust_id}`, form)
         .then(() => {
           setMessage('Customer updated successfully!')
           resetForm()
@@ -48,7 +49,7 @@ const CustomerList = () => {
         })
         .catch(() => setMessage('Error updating customer'))
     } else {
-      axios.post('http://localhost:5000/api/customers', form)
+      axios.post(`${api_url}customers`, form)
         .then(() => {
           setMessage('Customer created successfully!')
           resetForm()
@@ -71,7 +72,7 @@ const CustomerList = () => {
 
   const handleDelete = (id) => {
     if (window.confirm('Are you sure to delete this customer?')) {
-      axios.delete(`http://localhost:5000/api/customers/${id}`)
+      axios.delete(`${api_url}customers/${id}`)
         .then(() => {
           setMessage('Customer deleted.')
           fetchCustomers()

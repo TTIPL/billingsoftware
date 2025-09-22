@@ -5,6 +5,7 @@ import {
   CTableDataCell, CTableHead, CTableHeaderCell, CTableRow, CAlert,
 } from '@coreui/react'
 import axios from 'axios'
+import { api_url } from '../../../config'
 
 const MasterList = () => {
   const [masters, setMasters] = useState([])
@@ -26,7 +27,7 @@ const MasterList = () => {
   }, [])
 
   const fetchMasters = () => {
-    axios.get('http://localhost:5000/api/masters')
+    axios.get(`${api_url}masters`)
       .then((res) => {
         localStorage.removeItem('masters')
         localStorage.setItem('masters', JSON.stringify(res.data))
@@ -48,7 +49,7 @@ const MasterList = () => {
   const handleSubmit = (e) => {
     e.preventDefault()
     if (isEdit) {
-      axios.put(`http://localhost:5000/api/masters/${form.master_id}`, form)
+      axios.put(`${api_url}masters/${form.master_id}`, form)
         .then(() => {
           setMessage('Master updated successfully!')
           resetForm()
@@ -56,7 +57,7 @@ const MasterList = () => {
         })
         .catch(() => setMessage('Error updating master'))
     } else {
-      axios.post('http://localhost:5000/api/masters', form)
+      axios.post(`${api_url}masters`, form)
         .then(() => {
           setMessage('Master created successfully!')
           resetForm()
@@ -80,7 +81,7 @@ const MasterList = () => {
 
   const handleDelete = (id) => {
     if (window.confirm('Are you sure to delete this master?')) {
-      axios.delete(`http://localhost:5000/api/masters/${id}`)
+      axios.delete(`${api_url}masters/${id}`)
         .then(() => {
           setMessage('Master deleted.')
           fetchMasters()

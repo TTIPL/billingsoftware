@@ -27,6 +27,7 @@ import Select from 'react-select'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable' 
 import axios from 'axios'
+import { api_url } from '../../../config'
 
 
 const Reports = () => {
@@ -45,7 +46,7 @@ const Reports = () => {
 
   const fetchCustomers = () => {
     axios
-      .get('http://localhost:5000/api/customers')
+      .get(`${api_url}customers`)
       .then((res) => setCustomerList(res.data))
       .catch((err) => console.error(err))
   }
@@ -58,7 +59,7 @@ const Reports = () => {
         customerId: filters.customerId,
       }
       const queryString = new URLSearchParams(params).toString()
-      const url = `http://localhost:5000/api/products/reports/?${queryString}`
+      const url = `${api_url}products/reports/?${queryString}`
       const res = await axios.get(url)
       setBillingList(res.data.data)
     } catch (error) {
@@ -68,7 +69,7 @@ const Reports = () => {
   const fetchgetBillingDetails = (data) => {
     let id = data.billing_id
     axios
-      .get(`http://localhost:5000/api/products/billing-details/${id}`)
+      .get(`${api_url}products/billing-details/${id}`)
       .then((res) => {
         let billingData = res.data.data
         let bill = data
@@ -104,7 +105,7 @@ const Reports = () => {
   
     let id = data.billing_id
     axios
-      .get(`http://localhost:5000/api/products/billing-details/${id}`)
+      .get(`${api_url}products/billing-details/${id}`)
       .then((res) => {
         let billingData = res.data.data;
       let respData=  billingData.filter((res) => {

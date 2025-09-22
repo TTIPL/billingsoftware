@@ -18,6 +18,7 @@ import { Link } from 'react-router-dom'
 import axios from 'axios'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import { api_url } from '../../../config'
 
 const billlingList = () => {
   const [billings, setBillings] = useState([])
@@ -29,7 +30,7 @@ const billlingList = () => {
   const fetchgetBillingDetails = (data) => {
     let id = data.billing_id
     axios
-      .get(`http://localhost:5000/api/products/billing-details/${id}`)
+      .get(`${api_url}products/billing-details/${id}`)
       .then((res) => {
         setBillings(res.data.data)
         let billingData = res.data.data
@@ -181,7 +182,7 @@ const billlingList = () => {
 
   const fetchgetAllBillings = () => {
     axios
-      .get(`http://localhost:5000/api/products/all-billings`)
+      .get(`${api_url}products/all-billings`)
       .then((res) => setBillingList(res.data.data))
       .catch((err) => console.error(err))
   }

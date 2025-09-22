@@ -21,6 +21,7 @@ import {
   CModalTitle,
 } from '@coreui/react'
 import axios from 'axios'
+import { api_url } from '../../../config'
 
 const CompanyList = () => {
   const [companies, setCompanies] = useState([])
@@ -35,7 +36,7 @@ const CompanyList = () => {
   })
   const [editingId, setEditingId] = useState(null)
 
-  const API_URL = 'http://localhost:5000/api/companies'
+  const API_URL = `${api_url}companies`
 
   const fetchCompanies = async () => {
     const res = await axios.get(API_URL)

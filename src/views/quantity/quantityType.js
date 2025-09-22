@@ -6,6 +6,7 @@ import {
   CTableRow, CAlert,
 } from '@coreui/react';
 import axios from 'axios';
+import { api_url } from '../../../config';
 
 const QuantityType = () => {
   const [types, setTypes] = useState([]);
@@ -13,7 +14,7 @@ const QuantityType = () => {
   const [editId, setEditId] = useState(null);
   const [message, setMessage] = useState('');
 
-  const API = 'http://localhost:5000/api/quantity-types';
+  const API = `${api_url}quantity-types`;
 
   useEffect(() => {
     fetchTypes();
