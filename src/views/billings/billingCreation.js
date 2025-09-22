@@ -252,51 +252,44 @@ const BillingCreation = () => {
       alert("Failed to create billing");
     }
   };
-const generatePDFDownload = () => {
-  generatePDFWithGSTLeftAligned(form,10);
-}
- 
-  const generatePDFWithLable = () => {
-    const doc = new jsPDF()
-    const pageWidth = doc.internal.pageSize.getWidth()
 
-    doc.setFontSize(10)
-
-    // Center "Jai Gurudev" at the top
-    const gurudevText = 'Jai Gurudev'
-    const textWidth = doc.getTextWidth(gurudevText)
-    doc.text(gurudevText, (pageWidth - textWidth) / 2, 10)
-    const muruganImageBase64 =
-      'https://thumbs.dreamstime.com/b/sketch-lord-murugan-kartikeya-outline-editable-vector-illustration-drawing-184058651.jpg' // insert base64 of red Murugan image
-    doc.addImage(muruganImageBase64, 'PNG', 10, 10, 25, 25)
-    // Company Header
-    doc.setFontSize(16)
-    doc.setFont('helvetica', 'bold')
-    doc.setTextColor(255, 0, 0)
-    doc.text('SRI KUMARAN ELECTRICALS', 60, 17)
-
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(0, 0, 0)
-    doc.text('All Types of Motor Repairing with Panel Board Starters', 60, 25)
-    doc.text('Panchayat Board Motors and Engineering Works done here.', 54, 30)
-
-    doc.setFont('helvetica', 'bold')
-    doc.text('QUATATION', 90, 36)
-    doc.setFont('helvetica', 'normal')
-
-    doc.text('Prop. : SANJEEVA', 160, 15)
-    doc.text('Cell : 7708801975', 160, 20)
-
-    doc.setFontSize(10)
-    doc.text('No.2, Saravana Complex, Nagalapuram Road, Uthukottai - 602 026.', 55, 42)
-
-
-
-    // Table
+  const generatePDFDownload = () => {
+    console.log("pdf_label_support");
+  
+    const mastersData = JSON.parse(localStorage.getItem('masters') || '[]');
+    const masterSettings = Array.isArray(mastersData) ? mastersData[0] : mastersData;
+  
+    const gstValueString = masterSettings?.gst_value || '0';
+    const gstPercent = parseFloat(gstValueString.replace('%', '')) || 0;
+  
+    const settings = {
+      gstSupport: !!masterSettings?.gst_support,
+      pdfLabelSupport: !!masterSettings?.pdf_label_support,
+    };
+  
+    generateUnifiedPDF(form, gstPercent, settings);
+  };
+  
+  const generateUnifiedPDF = (form, gstPercent, settings) => {
+    const doc = new jsPDF();
+    const gstRate = gstPercent / 100;
+    const pageWidth = doc.internal.pageSize.getWidth();
+  
+    const totalAmount = form.products.reduce((sum, p) => sum + Number(p.total), 0);
+    const cgstAmount = totalAmount * gstRate;
+    const sgstAmount = totalAmount * gstRate;
+    const grandTotal = totalAmount + cgstAmount + sgstAmount;
+  
+    // Optional: Add custom header if pdfLabelSupport is true
+    if (settings.pdfLabelSupport) {
+      addCustomHeader(doc, pageWidth);
+    }
+  
+    // Table section
+    const startY = 70;
     autoTable(doc, {
-      startY: 70,
-      head: [['S.NO', 'PATICULARS', 'QTY', 'RATE', 'AMOUNT']],
+      startY,
+      head: [['S.NO', 'PARTICULARS', 'QTY', 'RATE', 'AMOUNT']],
       body: form.products.map((p, i) => [
         i + 1,
         p.productName,
@@ -313,7 +306,7 @@ const generatePDFDownload = () => {
         lineWidth: 0.3,
       },
       headStyles: {
-        fillColor: false,
+        fillColor: [220, 220, 220],
         textColor: [0, 0, 0],
         fontStyle: 'bold',
         halign: 'center',
@@ -325,140 +318,72 @@ const generatePDFDownload = () => {
         textColor: [0, 0, 0],
       },
       columnStyles: {
-        0: { cellWidth: 15, halign: 'center' }, // S.NO
-        1: { cellWidth: 100, halign: 'left' }, // PATICULARS
-        2: { cellWidth: 20, halign: 'center' }, // QTY
-        3: { cellWidth: 25, halign: 'right' }, // RATE
-        4: { cellWidth: 30, halign: 'right' }, // AMOUNT
+        0: { cellWidth: 15, halign: 'center' },
+        1: { cellWidth: 90, halign: 'left' },
+        2: { cellWidth: 20, halign: 'center' },
+        3: { cellWidth: 25, halign: 'right' },
+        4: { cellWidth: 30, halign: 'right' },
       },
-      didDrawPage: function (data) {
-        const finalY = data.cursor.y + 2
-        doc.setFontSize(10)
-        doc.setFont('helvetica', 'bold')
-        doc.text('TOTAL', 145, finalY + 10)
-        doc.text(totalAmount.toFixed(2), 180, finalY + 10, { align: 'right' })
-        doc.setLineWidth(0.5)
-        doc.rect(140, finalY + 3, 60, 10) // Border around TOTAL amount
+      didDrawPage: (data) => {
+        const finalY = data.cursor.y + 10;
+        const marginLeft = data.settings.margin.left;
+  
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Total Quoted Amount:', marginLeft, finalY);
+  
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Total Amount: ${totalAmount.toFixed(2)}`, marginLeft, finalY + 8);
+  
+        if (settings.gstSupport && gstPercent > 0) {
+          doc.text(`CGST (${gstPercent}%): ${cgstAmount.toFixed(2)}`, marginLeft, finalY + 16);
+          doc.text(`SGST (${gstPercent}%): ${sgstAmount.toFixed(2)}`, marginLeft, finalY + 24);
+  
+          doc.setFont('helvetica', 'bold');
+          doc.text(`Grand Total (incl. GST): ${grandTotal.toFixed(2)}`, marginLeft, finalY + 36);
+        }
       },
-    })
-
-    // Total Amount
-    doc.setFontSize(12)
-    const pdfBlobUrl = doc.output('bloburl')
-    window.open(pdfBlobUrl, '_blank')
-  }
-
-// Helper function to convert number to words (simple version, customize as needed)
-function numberToWords(num) {
-  const a = [
-    '', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine',
-    'Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen',
-    'Seventeen', 'Eighteen', 'Nineteen'
-  ];
-  const b = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
-
-  if ((num = num.toString()).length > 9) return 'Overflow';
-  const n = ('000000000' + num).substr(-9).match(/^(\d{3})(\d{3})(\d{3})$/);
-  if (!n) return; 
-  let str = '';
-  str += (parseInt(n[1]) !== 0) ? (a[Number(n[1])] || b[n[1][0]] + ' ' + a[n[1][1]]) + ' Million ' : '';
-  str += (parseInt(n[2]) !== 0) ? (a[Number(n[2])] || b[n[2][0]] + ' ' + a[n[2][1]]) + ' Thousand ' : '';
-  str += (parseInt(n[3]) !== 0) ? (a[Number(n[3])] || b[n[3][0]] + ' ' + a[n[3][1]]) : '';
-  return str.trim() + ' only';
-}
-
-const generatePDFWithGSTLeftAligned = (form, gstPercent) => {
-  const doc = new jsPDF()
-  const gstRate = gstPercent / 100
-
-  // Calculate total amount from products
-  const totalAmount = form.products.reduce((sum, p) => sum + Number(p.total), 0)
-
-  // Calculate CGST and SGST (both same gstPercent)
-  const cgstAmount = totalAmount * gstRate
-  const sgstAmount = totalAmount * gstRate
-  const grandTotal = totalAmount + cgstAmount + sgstAmount
-
-  // Starting positions
-  const startY = 70
-
- 
-
-  autoTable(doc, {
-    startY,
-    head: [['S.NO', 'PARTICULARS', 'QTY', 'RATE', 'AMOUNT']],
-    body: form.products.map((p, i) => [
-      i + 1,
-      p.productName,
-      p.qty,
-      p.price,
-      p.total,
-    ]),
-    styles: {
-      fontSize: 10,
-      cellPadding: { top: 3, right: 3, bottom: 3, left: 3 },
-      valign: 'middle',
-      halign: 'center',
-      lineColor: [0, 0, 0],
-      lineWidth: 0.3,
-    },
-    headStyles: {
-      fillColor: [220, 220, 220],
-      textColor: [0, 0, 0],
-      fontStyle: 'bold',
-      halign: 'center',
-      lineWidth: 0.5,
-      lineColor: [0, 0, 0],
-    },
-    bodyStyles: {
-      fillColor: false,
-      textColor: [0, 0, 0],
-    },
-    columnStyles: {
-      0: { cellWidth: 15, halign: 'center' }, // S.NO
-      1: { cellWidth: 90, halign: 'left' },   // PARTICULARS
-      2: { cellWidth: 20, halign: 'center' }, // QTY
-      3: { cellWidth: 25, halign: 'right' },  // RATE
-      4: { cellWidth: 30, halign: 'right' },  // AMOUNT
-    },
-    didDrawPage: (data) => {
-      const finalY = data.cursor.y + 10
-      const marginLeft = data.settings.margin.left
-    
-      doc.setFontSize(11)
-      doc.setFont('helvetica', 'bold')
-      doc.text('Total Quoted Amount:', marginLeft, finalY)
-    
-      doc.setFont('helvetica', 'normal')
-      doc.text(`Total Amount: ${totalAmount.toFixed(2)}`, marginLeft, finalY + 8)
-    
-      if (gstPercent > 0) {
-        doc.text(`CGST (${gstPercent}%): ${cgstAmount.toFixed(2)}`, marginLeft, finalY + 16)
-        doc.text(`SGST (${gstPercent}%): ${sgstAmount.toFixed(2)}`, marginLeft, finalY + 24)
-    
-        doc.setFont('helvetica', 'bold')
-        doc.text(`Grand Total (incl. GST): ${grandTotal.toFixed(2)}`, marginLeft, finalY + 36)
-    
-        doc.setFont('helvetica', 'normal')
-        doc.setFontSize(9)
-       
-      } else {
-        // GST percent is 0, so show only Grand Total which equals totalAmount
-        // doc.setFont('helvetica', 'bold')
-        // doc.text(`Grand Total: ${totalAmount.toFixed(2)}`, marginLeft, finalY + 16)
-    
-        // doc.setFont('helvetica', 'normal')
-        // doc.setFontSize(9)
-        // const amountInWords = numberToWords(totalAmount)
-        // doc.text(`Amount in words: ${amountInWords}`, marginLeft, finalY + 24)
-      }
-    },
-    
-  })
-
-  const pdfBlobUrl = doc.output('bloburl')
-  window.open(pdfBlobUrl, '_blank')
-}
+    });
+  
+    const pdfBlobUrl = doc.output('bloburl');
+    window.open(pdfBlobUrl, '_blank');
+  };
+  
+  const addCustomHeader = (doc, pageWidth) => {
+    const gurudevText = 'Jai Gurudev';
+    const textWidth = doc.getTextWidth(gurudevText);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text(gurudevText, (pageWidth - textWidth) / 2, 10);
+  
+    // Optional: Replace this URL with actual base64 if needed
+    const muruganImageBase64 =
+      'https://thumbs.dreamstime.com/b/sketch-lord-murugan-kartikeya-outline-editable-vector-illustration-drawing-184058651.jpg';
+    doc.addImage(muruganImageBase64, 'PNG', 10, 10, 25, 25);
+  
+    // Company Title
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(255, 0, 0);
+    doc.text('SRI KUMARAN ELECTRICALS', 60, 17);
+  
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
+    doc.text('All Types of Motor Repairing with Panel Board Starters', 60, 25);
+    doc.text('Panchayat Board Motors and Engineering Works done here.', 54, 30);
+  
+    doc.setFont('helvetica', 'normal');
+    doc.text('Prop. : SANJEEVA', 160, 15);
+    doc.text('Cell : 7708801975', 160, 20);
+    doc.text('No.2, Saravana Complex, Nagalapuram Road, Uthukottai - 602 026.', 55, 42);
+  
+    // Document Title
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('QUATATION', 90, 36);
+  };
+  
 
   return (
     <CRow>

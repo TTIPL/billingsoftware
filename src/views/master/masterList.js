@@ -27,7 +27,13 @@ const MasterList = () => {
 
   const fetchMasters = () => {
     axios.get('http://localhost:5000/api/masters')
-      .then((res) => setMasters(res.data))
+      .then((res) => {
+        localStorage.removeItem('masters')
+        localStorage.setItem('masters', JSON.stringify(res.data))
+        setMasters(res.data)
+      }
+      )
+
       .catch((err) => console.error('Fetch failed:', err))
   }
 

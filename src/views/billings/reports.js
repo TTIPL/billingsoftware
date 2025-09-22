@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react'
+import CIcon from '@coreui/icons-react'
 import {
   CCard,
   CCardBody,
@@ -17,6 +18,11 @@ import {
   CTableBody,
   CTableDataCell,
 } from '@coreui/react'
+import {
+  cilBell,
+  cilCalculator,
+  cilDataTransferDown
+} from '@coreui/icons'
 import Select from 'react-select'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable' 
@@ -83,8 +89,170 @@ const Reports = () => {
       .catch((err) => console.error(err))
   }
 
+
+  const generatePDFDownload = (data,orgId) => {
+    const mastersData = JSON.parse(localStorage.getItem('masters') || '[]');
+    const masterSettings = Array.isArray(mastersData) ? mastersData[0] : mastersData;
+  
+    const gstValueString = masterSettings?.gst_value || '0';
+    const gstPercent = parseFloat(gstValueString.replace('%', '')) || 0;
+  
+    const settings = {
+      gstSupport: !!masterSettings?.gst_support,
+      pdfLabelSupport: !!masterSettings?.pdf_label_support,
+    };
+  
+    let id = data.billing_id
+    axios
+      .get(`http://localhost:5000/api/products/billing-details/${id}`)
+      .then((res) => {
+        let billingData = res.data.data;
+      let respData=  billingData.filter((res) => {
+          return res.company_id === orgId;
+        });
+        console.log(respData)
+         generateUnifiedPDF(respData, gstPercent, settings);
+      })
+
+    
+  };
+  
+  const generateUnifiedPDF = (formData, gstPercent, settings) => {
+    const doc = new jsPDF();
+    const gstRate = gstPercent / 100;
+    const pageWidth = doc.internal.pageSize.getWidth();
+  
+    // Format products for table
+    const products = formData.map((item) => ({
+      productName: item.prod_name,
+      qty: Number(item.prod_qty),
+      price: Number(item.prod_price),
+      total: Number(item.total_amt),
+    }));
+  
+    const totalAmount = products.reduce((sum, p) => sum + p.total, 0);
+    const cgstAmount = totalAmount * gstRate;
+    const sgstAmount = totalAmount * gstRate;
+    const grandTotal = totalAmount + cgstAmount + sgstAmount;
+  
+    // Add header
+    if (settings.pdfLabelSupport) {
+      addCustomHeader(doc, pageWidth,formData[0]);
+    }
+  
+    // Insert Customer Details after header
+    const customer = formData[0];
+    const customerStartY = 68; // Adjust this if needed based on your header height
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
+    doc.text(` ${customer.cust_name}`, 14, customerStartY);
+    doc.text(`All Types of Motor Repairing with Panel Board Starters All Types of Motor Repairing with Panel Board Starters`, 14, customerStartY + 6);
+   
+  
+    // Table section
+    const startY = 80;
+    autoTable(doc, {
+      startY,
+      head: [['S.NO', 'PARTICULARS', 'QTY', 'RATE', 'AMOUNT']],
+      body: products.map((p, i) => [
+        i + 1,
+        p.productName,
+        p.qty,
+        p.price.toFixed(2),
+        p.total.toFixed(2),
+      ]),
+      styles: {
+        fontSize: 10,
+        cellPadding: 3,
+        valign: 'middle',
+        halign: 'center',
+        lineColor: [0, 0, 0],
+        lineWidth: 0.3,
+      },
+      headStyles: {
+        fillColor: [220, 220, 220],
+        textColor: [0, 0, 0],
+        fontStyle: 'bold',
+        halign: 'center',
+        lineWidth: 0.5,
+      },
+      bodyStyles: {
+        fillColor: false,
+        textColor: [0, 0, 0],
+      },
+      columnStyles: {
+        0: { cellWidth: 15, halign: 'center' },
+        1: { cellWidth: 90, halign: 'left' },
+        2: { cellWidth: 20, halign: 'center' },
+        3: { cellWidth: 25, halign: 'right' },
+        4: { cellWidth: 30, halign: 'right' },
+      },
+      didDrawPage: (data) => {
+        const finalY = data.cursor.y + 10;
+        const marginLeft = data.settings.margin.left;
+  
+        doc.setFontSize(11);
+        doc.setFont('helvetica', 'bold');
+        doc.text('Total Quoted Amount:', marginLeft, finalY);
+  
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Total Amount: ${totalAmount.toFixed(2)}`, marginLeft, finalY + 8);
+  
+        if (settings.gstSupport && gstPercent > 0) {
+          doc.text(`CGST (${gstPercent}%): ${cgstAmount.toFixed(2)}`, marginLeft, finalY + 16);
+          doc.text(`SGST (${gstPercent}%): ${sgstAmount.toFixed(2)}`, marginLeft, finalY + 24);
+  
+          doc.setFont('helvetica', 'bold');
+          doc.text(`Grand Total (incl. GST): ${grandTotal.toFixed(2)}`, marginLeft, finalY + 36);
+        }
+      },
+    });
+  
+    const pdfBlobUrl = doc.output('bloburl');
+    window.open(pdfBlobUrl, '_blank');
+  };
+  
+  
+  const addCustomHeader = (doc, pageWidth,cust) => {
+    const gurudevText = 'Jai Gurudev';
+    const textWidth = doc.getTextWidth(gurudevText);
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(10);
+    doc.text(gurudevText, (pageWidth - textWidth) / 2, 10);
+  
+    // Optional: Replace this URL with actual base64 if needed
+    const muruganImageBase64 =
+      'https://thumbs.dreamstime.com/b/sketch-lord-murugan-kartikeya-outline-editable-vector-illustration-drawing-184058651.jpg';
+    doc.addImage(muruganImageBase64, 'PNG', 10, 10, 25, 25);
+  
+    // Company Title
+    doc.setFontSize(16);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(255, 0, 0);
+    doc.text(cust.company_name, 60, 17);
+  
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(0, 0, 0);
+    doc.text('All Types of Motor Repairing with Panel Board Starters', 60, 25);
+    doc.text('Panchayat Board Motors and Engineering Works done here.', 54, 30);
+  
+    doc.setFont('helvetica', 'normal');
+    doc.text('Prop. : SANJEEVA', 160, 15);
+    doc.text('Cell : 7708801975', 160, 20);
+    doc.text('No.2, Saravana Complex, Nagalapuram Road, Uthukottai - 602 026.', 55, 42);
+  
+    // Document Title
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(12);
+    doc.text('QUATATION', 90, 36);
+  };
+
+
   const generateComparativePDF = (data, bill) => {
-    const doc = new jsPDF()
+    const doc = new jsPDF({ orientation: 'landscape' })
+
 
     doc.setFontSize(12)
     doc.setFont('helvetica', 'bold')
@@ -98,9 +266,9 @@ const Reports = () => {
 
     const grouped = {}
     const totals = {
-      'Sri Kumaran': 0,
+      'Sri Kumaran Electricals': 0,
       'Santhosh Enterprises': 0,
-      'Sri Raghavendra': 0,
+      'Sri Raghavendra Electricals': 0,
     }
 
     data.forEach((item) => {
@@ -117,9 +285,9 @@ const Reports = () => {
     })
 
     const companies = {
-      kumaran: 'Sri Kumaran',
+      kumaran: 'Sri Kumaran Electricals',
       santhosh: 'Santhosh Enterprises',
-      raghavendra: 'Sri Raghavendra',
+      raghavendra: 'Sri Raghavendra Electricals',
     }
 
     const rows = []
@@ -229,8 +397,12 @@ const Reports = () => {
     window.open(blobURL)
   }
 
+
+
+
   const generateComparativePDFWithGST = (data, bill,gstPercent) => {
-    const doc = new jsPDF()
+    const doc = new jsPDF({ orientation: 'landscape' })
+
 
     doc.setFontSize(12)
     doc.setFont('helvetica', 'bold')
@@ -244,11 +416,11 @@ const Reports = () => {
 
     const grouped = {}
     const totals = {
-      'Sri Kumaran': 0,
+      'Sri Kumaran Electricals': 0,
       'Santhosh Enterprises': 0,
-      'Sri Raghavendra': 0,
+      'Sri Raghavendra Electricals': 0,
     }
-
+ 
     data.forEach((item) => {
       const key = item.prod_name
       if (!grouped[key]) grouped[key] = {}
@@ -263,9 +435,9 @@ const Reports = () => {
     })
 
     const companies = {
-      kumaran: 'Sri Kumaran',
+      kumaran: 'Sri Kumaran Electricals',
       santhosh: 'Santhosh Enterprises',
-      raghavendra: 'Sri Raghavendra',
+      raghavendra: 'Sri Raghavendra Electricals',
     }
 
     const rows = []
@@ -484,7 +656,10 @@ const Reports = () => {
                   <CTableHeaderCell scope="col">Company Name</CTableHeaderCell>
                   <CTableHeaderCell scope="col">Overall Amt</CTableHeaderCell>
                   <CTableHeaderCell scope="col">Created Date</CTableHeaderCell>
-                  <CTableHeaderCell scope="col">Action</CTableHeaderCell>
+                  <CTableHeaderCell scope="col">Kumaran</CTableHeaderCell>
+                  <CTableHeaderCell scope="col">Santhosh</CTableHeaderCell>
+                  <CTableHeaderCell scope="col">Raghavendra</CTableHeaderCell>
+                  <CTableHeaderCell scope="col">Compare Statement</CTableHeaderCell>
                 </CTableRow>
               </CTableHead>
               <CTableBody>
@@ -498,8 +673,26 @@ const Reports = () => {
                       <CTableDataCell>{prod.overall_amt}</CTableDataCell>
                       <CTableDataCell>{formatDateUTC(prod.created_at)}</CTableDataCell>
                       <CTableDataCell>
+                        {/* <CButton color="success" >
+                        <CIcon icon={cilDataTransferDown} customClassName="nav-icon" />
+                        </CButton> */}
+                        <CButton color="info" onClick={() => generatePDFDownload(prod,1)}>
+  <CIcon icon={cilDataTransferDown} title="Download file" />
+</CButton>
+                      </CTableDataCell>
+                      <CTableDataCell>
+                        <CButton color="primary" onClick={() => generatePDFDownload(prod,3)}>
+                        <CIcon icon={cilDataTransferDown} title="Download file" /> 
+                        </CButton>
+                      </CTableDataCell>
+                      <CTableDataCell>
+                        <CButton color="warning" onClick={() => generatePDFDownload(prod,2)}>
+                        <CIcon icon={cilDataTransferDown} title="Download file" /> 
+                        </CButton>
+                      </CTableDataCell>
+                      <CTableDataCell>
                         <CButton color="success" onClick={() => fetchgetBillingDetails(prod)}>
-                          Download PDF
+                        <CIcon icon={cilDataTransferDown} title="Download file" />
                         </CButton>
                       </CTableDataCell>
                     </CTableRow>
