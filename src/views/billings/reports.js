@@ -123,53 +123,71 @@ const Reports = () => {
     const gstRate = gstPercent / 100;
     const pageWidth = doc.internal.pageSize.getWidth();
   
-    // Format products for table
+    // Format products
     const products = formData.map((item) => ({
       productName: item.prod_name,
       qty: Number(item.prod_qty),
       price: Number(item.prod_price),
       total: Number(item.total_amt),
     }));
-  
-    const totalAmount = products.reduce((sum, p) => sum + p.total, 0);
-    const cgstAmount = totalAmount * gstRate;
-    const sgstAmount = totalAmount * gstRate;
-    const grandTotal = totalAmount + cgstAmount + sgstAmount;
-  
-    // Add header
+
+
+    const totalAmountRaw = products.reduce((sum, p) => sum + p.total, 0);
+const cgstAmountRaw = totalAmountRaw * gstRate;
+const sgstAmountRaw = totalAmountRaw * gstRate;
+const grandTotalRaw = totalAmountRaw + cgstAmountRaw + sgstAmountRaw;
+
+// ✅ Round-off for display
+const totalAmount = Math.round(totalAmountRaw);
+const cgstAmount = Math.round(cgstAmountRaw);
+const sgstAmount = Math.round(sgstAmountRaw);
+const grandTotal = Math.round(grandTotalRaw);
+
+
     if (settings.pdfLabelSupport) {
-      addCustomHeader(doc, pageWidth,formData[0]);
+      addCustomHeader(doc, pageWidth, formData[0]);
     }
   
-    // Insert Customer Details after header
+    // Customer details
     const customer = formData[0];
-    const customerStartY = 68; // Adjust this if needed based on your header height
+    const customerStartY = 68;
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0, 0, 0);
     doc.text(` ${customer.cust_name}`, 14, customerStartY);
-    doc.text(`All Types of Motor Repairing with Panel Board Starters All Types of Motor Repairing with Panel Board Starters`, 14, customerStartY + 6);
-   
+    doc.text(`All Types of Motor Repairing with Panel Board Starters`, 14, customerStartY + 6);
   
-    // Table section
-    const startY = 80;
+    // Prepare table data
+    const productRows = products.map((p, i) => [
+      i + 1,
+      p.productName,
+      p.qty,
+      p.price.toLocaleString(),
+      p.total.toLocaleString(),
+    ]);
+  
+    const productRowCount = productRows.length;
+  
+    // Totals and GST
+    productRows.push(['', '', '', 'Total Amount', totalAmount.toLocaleString()]);
+    if (settings.gstSupport && gstPercent > 0) {
+      productRows.push(
+        ['', '', '', `CGST (${gstPercent}%)`, cgstAmount.toLocaleString()],
+        ['', '', '', `SGST (${gstPercent}%)`, sgstAmount.toLocaleString()],
+        ['', '', '', 'Grand Total (incl. GST)', grandTotal.toLocaleString()]
+      );
+    }
+  
+    // Render table
     autoTable(doc, {
-      startY,
+      startY: 80,
       head: [['S.NO', 'PARTICULARS', 'QTY', 'RATE', 'AMOUNT']],
-      body: products.map((p, i) => [
-        i + 1,
-        p.productName,
-        p.qty,
-        p.price.toFixed(2),
-        p.total.toFixed(2),
-      ]),
+      body: productRows,
       styles: {
         fontSize: 10,
         cellPadding: 3,
         valign: 'middle',
         halign: 'center',
-        lineColor: [0, 0, 0],
-        lineWidth: 0.3,
       },
       headStyles: {
         fillColor: [220, 220, 220],
@@ -178,41 +196,66 @@ const Reports = () => {
         halign: 'center',
         lineWidth: 0.5,
       },
-      bodyStyles: {
-        fillColor: false,
-        textColor: [0, 0, 0],
-      },
       columnStyles: {
-        0: { cellWidth: 15, halign: 'center' },
-        1: { cellWidth: 90, halign: 'left' },
-        2: { cellWidth: 20, halign: 'center' },
-        3: { cellWidth: 25, halign: 'right' },
-        4: { cellWidth: 30, halign: 'right' },
+        0: { cellWidth: 15, halign: 'center' }, // S.NO
+        1: { cellWidth: 90, halign: 'left' },   // PARTICULARS
+        2: { cellWidth: 20, halign: 'center' }, // QTY
+        3: { cellWidth: 25, halign: 'right' },  // RATE
+        4: { cellWidth: 30, halign: 'right' },  // AMOUNT
       },
-      didDrawPage: (data) => {
-        const finalY = data.cursor.y + 10;
-        const marginLeft = data.settings.margin.left;
   
-        doc.setFontSize(11);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Total Quoted Amount:', marginLeft, finalY);
-  
-        doc.setFont('helvetica', 'normal');
-        doc.text(`Total Amount: ${totalAmount.toFixed(2)}`, marginLeft, finalY + 8);
-  
-        if (settings.gstSupport && gstPercent > 0) {
-          doc.text(`CGST (${gstPercent}%): ${cgstAmount.toFixed(2)}`, marginLeft, finalY + 16);
-          doc.text(`SGST (${gstPercent}%): ${sgstAmount.toFixed(2)}`, marginLeft, finalY + 24);
-  
-          doc.setFont('helvetica', 'bold');
-          doc.text(`Grand Total (incl. GST): ${grandTotal.toFixed(2)}`, marginLeft, finalY + 36);
+      didParseCell: function (data) {
+        const colIdx = data.column.index;
+        const rowIdx = data.row.index;
+        const productRowCount = data.table.body.length - (settings.gstSupport && gstPercent > 0 ? 4 : 1); 
+        // Subtract number of total rows added dynamically (1 or 4 rows for totals)
+      
+        // Remove background color for all cells
+        data.cell.styles.fillColor = [255, 255, 255];
+      
+        // For product rows (all rows before totals)
+        if (rowIdx < productRowCount) {
+          data.cell.styles.lineWidth = 0.3; // keep border for all columns in product rows
+        } else {
+          // For total/GST rows
+          if (colIdx < 3) {
+            data.cell.styles.lineWidth = 0; // no border for first three columns in total rows
+          } else {
+            data.cell.styles.lineWidth = 0.3; // border for RATE and AMOUNT columns in total rows
+          }
+          data.cell.styles.fontStyle = 'bold';
+          if (colIdx === 3 || colIdx === 4) {
+            data.cell.styles.halign = 'right';
+          }
         }
+      
+        // Set text color always to black
+        data.cell.styles.textColor = [0, 0, 0];
       },
+      didDrawPage: function (data) {
+        const pageWidth = doc.internal.pageSize.getWidth();
+        const tableBottomY = data.cursor.y; // Get where table ends
+    
+        // Set font
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+    
+        // Text to right
+        doc.text(`For ${formData[0].company_name}`, pageWidth - 60, tableBottomY + 30);
+      }
+      
+      
     });
   
+    // Open the PDF
     const pdfBlobUrl = doc.output('bloburl');
     window.open(pdfBlobUrl, '_blank');
   };
+  
+  
+  
+  
+  
   
   
   const addCustomHeader = (doc, pageWidth,cust) => {
@@ -231,8 +274,7 @@ const Reports = () => {
     doc.setFontSize(16);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(255, 0, 0);
-    doc.text(cust.company_name, 60, 17);
-  
+    doc.text(cust.company_name.toUpperCase(), 75, 17);
     doc.setFontSize(10);
     doc.setFont('helvetica', 'normal');
     doc.setTextColor(0, 0, 0);
@@ -240,8 +282,8 @@ const Reports = () => {
     doc.text('Panchayat Board Motors and Engineering Works done here.', 54, 30);
   
     doc.setFont('helvetica', 'normal');
-    doc.text('Prop. : SANJEEVA', 160, 15);
-    doc.text('Cell : 7708801975', 160, 20);
+    // doc.text('Prop. : SANJEEVA', 160, 15);
+    // doc.text('Cell : 7708801975', 160, 20);
     doc.text('No.2, Saravana Complex, Nagalapuram Road, Uthukottai - 602 026.', 55, 42);
   
     // Document Title
@@ -253,64 +295,76 @@ const Reports = () => {
 
   const generateComparativePDF = (data, bill) => {
     const doc = new jsPDF({ orientation: 'landscape' })
-
-
+  
     doc.setFontSize(12)
     doc.setFont('helvetica', 'bold')
     doc.text('COMPARATIVE STATEMENT', 75, 10)
-
+  
     doc.setFontSize(10)
     doc.setFont('helvetica', 'normal')
     doc.text(`Name Of The Union     : ${bill.cust_address}`, 14, 20)
     doc.text(`Name Of The Panchayat : ${bill.cust_name}`, 14, 26)
     doc.text(`Name Of the Work      : ${bill.billing_description}`, 14, 32)
-
+  
     const grouped = {}
     const totals = {
       'Sri Kumaran Electricals': 0,
       'Santhosh Enterprises': 0,
       'Sri Raghavendra Electricals': 0,
     }
-
+  
     data.forEach((item) => {
       const key = item.prod_name
       if (!grouped[key]) grouped[key] = {}
-
+  
       grouped[key][item.company_name] = {
         qty: item.prod_qty,
         rate: parseFloat(item.prod_price),
         amount: parseFloat(item.total_amt),
       }
-
+  
       totals[item.company_name] += parseFloat(item.total_amt)
     })
-
+  
     const companies = {
       kumaran: 'Sri Kumaran Electricals',
       santhosh: 'Santhosh Enterprises',
       raghavendra: 'Sri Raghavendra Electricals',
     }
-
+  
     const rows = []
     let index = 1
-
+  
+    // Add product rows
     for (const prodName in grouped) {
       const row = grouped[prodName]
-
       rows.push([
         index++,
         prodName,
         row[companies.kumaran]?.qty || '-',
-        row[companies.kumaran]?.rate?.toFixed(2) || '-',
-        row[companies.kumaran]?.amount?.toFixed(2) || '-',
-        row[companies.santhosh]?.rate?.toFixed(2) || '-',
-        row[companies.santhosh]?.amount?.toFixed(2) || '-',
-        row[companies.raghavendra]?.rate?.toFixed(2) || '-',
-        row[companies.raghavendra]?.amount?.toFixed(2) || '-',
+        row[companies.kumaran]?.rate?.toLocaleString('en-IN', { maximumFractionDigits: 0 }) || '-',
+        row[companies.kumaran]?.amount?.toLocaleString('en-IN', { maximumFractionDigits: 0 }) || '-',
+        row[companies.santhosh]?.rate?.toLocaleString('en-IN', { maximumFractionDigits: 0 }) || '-',
+        row[companies.santhosh]?.amount?.toLocaleString('en-IN', { maximumFractionDigits: 0 }) || '-',
+        row[companies.raghavendra]?.rate?.toLocaleString('en-IN', { maximumFractionDigits: 0 }) || '-',
+        row[companies.raghavendra]?.amount?.toLocaleString('en-IN', { maximumFractionDigits: 0 }) || '-',
         '',
       ])
     }
-
+  
+    // Subtotal row inside table
+    rows.push([
+      { content: 'Subtotal', colSpan: 3, styles: { halign: 'right', fontStyle: 'bold' } },
+      '',
+      totals[companies.kumaran].toLocaleString('en-IN', { maximumFractionDigits: 0 }),
+      '',
+      totals[companies.santhosh].toLocaleString('en-IN', { maximumFractionDigits: 0 }),
+      '',
+      totals[companies.raghavendra].toLocaleString('en-IN', { maximumFractionDigits: 0 }),
+      '',
+    ])
+  
+    // Build table
     autoTable(doc, {
       startY: 40,
       head: [
@@ -323,14 +377,7 @@ const Reports = () => {
           { content: 'Rate by Raghavendra', colSpan: 2, styles: { halign: 'center' } },
           { content: 'Remarks', rowSpan: 2 },
         ],
-        [
-          'Rate',
-          'Amount',
-          'Rate',
-          'Amount',
-          'Rate',
-          'Amount',
-        ],
+        ['Rate', 'Amount', 'Rate', 'Amount', 'Rate', 'Amount'],
       ],
       body: rows,
       styles: {
@@ -359,41 +406,16 @@ const Reports = () => {
       },
       theme: 'grid',
     })
-    
-
+  
+    // Lowest company after table
+    const lowestCompany = Object.keys(totals).reduce((a, b) =>
+      totals[a] < totals[b] ? a : b
+    )
+  
     const finalY = doc.lastAutoTable.finalY + 10
-
-    doc.setFontSize(10)
     doc.setFont('helvetica', 'bold')
-    doc.text('Total Quoted Amount:', 14, finalY)
-
-    doc.setFont('helvetica', 'normal')
-
-    const lineSpacing = 6
-    let currentY = finalY + lineSpacing
-
-    doc.text(`Sri Kumaran:${totals[companies.kumaran].toLocaleString('en-IN')}`, 14, currentY)
-    currentY += lineSpacing
-
-    doc.text(
-      `Santhosh Enterprises: ${totals[companies.santhosh].toLocaleString('en-IN')}`,
-      14,
-      currentY,
-    )
-    currentY += lineSpacing
-
-    doc.text(
-      `Sri Raghavendra: ${totals[companies.raghavendra].toLocaleString('en-IN')}`,
-      14,
-      currentY,
-    )
-
-    currentY += lineSpacing
-
-    const lowestCompany = Object.keys(totals).reduce((a, b) => (totals[a] < totals[b] ? a : b))
-    doc.setFont('helvetica', 'bold')
-    doc.text(`Lowest Rate For: ${lowestCompany.toUpperCase()}`, 14, finalY + 30)
-
+    doc.text(`Lowest Rate For: ${lowestCompany.toUpperCase()}`, 14, finalY)
+  
     const blobURL = doc.output('bloburl')
     window.open(blobURL)
   }
@@ -401,66 +423,124 @@ const Reports = () => {
 
 
 
-  const generateComparativePDFWithGST = (data, bill,gstPercent) => {
+  const generateComparativePDFWithGST = (data, bill, gstPercent) => {
     const doc = new jsPDF({ orientation: 'landscape' })
-
-
+  
     doc.setFontSize(12)
     doc.setFont('helvetica', 'bold')
     doc.text('COMPARATIVE STATEMENT', 75, 10)
-
+  
     doc.setFontSize(10)
     doc.setFont('helvetica', 'normal')
     doc.text(`Name Of The Union     : ${bill.cust_address}`, 14, 20)
     doc.text(`Name Of The Panchayat : ${bill.cust_name}`, 14, 26)
     doc.text(`Name Of the Work      : ${bill.billing_description}`, 14, 32)
-
+  
     const grouped = {}
     const totals = {
       'Sri Kumaran Electricals': 0,
       'Santhosh Enterprises': 0,
       'Sri Raghavendra Electricals': 0,
     }
- 
+  
     data.forEach((item) => {
       const key = item.prod_name
       if (!grouped[key]) grouped[key] = {}
-
+  
       grouped[key][item.company_name] = {
         qty: item.prod_qty,
-        rate: parseFloat(item.prod_price),
-        amount: parseFloat(item.total_amt),
+        rate: Math.round(parseFloat(item.prod_price)),
+        amount: Math.round(parseFloat(item.total_amt)),
       }
-
-      totals[item.company_name] += parseFloat(item.total_amt)
+  
+      totals[item.company_name] += Math.round(parseFloat(item.total_amt))
     })
-
+  
     const companies = {
       kumaran: 'Sri Kumaran Electricals',
       santhosh: 'Santhosh Enterprises',
       raghavendra: 'Sri Raghavendra Electricals',
     }
-
+  
+    const formatAmount = (val) =>
+      val !== '-' ? Number(val).toLocaleString('en-IN', { maximumFractionDigits: 0 }) : '-'
+  
     const rows = []
     let index = 1
-
+  
     for (const prodName in grouped) {
       const row = grouped[prodName]
-
+  
       rows.push([
         index++,
         prodName,
         row[companies.kumaran]?.qty || '-',
-        row[companies.kumaran]?.rate?.toFixed(2) || '-',
-        row[companies.kumaran]?.amount?.toFixed(2) || '-',
-        row[companies.santhosh]?.rate?.toFixed(2) || '-',
-        row[companies.santhosh]?.amount?.toFixed(2) || '-',
-        row[companies.raghavendra]?.rate?.toFixed(2) || '-',
-        row[companies.raghavendra]?.amount?.toFixed(2) || '-',
+        formatAmount(row[companies.kumaran]?.rate) || '-',
+        formatAmount(row[companies.kumaran]?.amount) || '-',
+        formatAmount(row[companies.santhosh]?.rate) || '-',
+        formatAmount(row[companies.santhosh]?.amount) || '-',
+        formatAmount(row[companies.raghavendra]?.rate) || '-',
+        formatAmount(row[companies.raghavendra]?.amount) || '-',
         '',
       ])
     }
-
+  
+    // Always show Subtotal
+    rows.push([
+      { content: 'Subtotal', colSpan: 3, styles: { halign: 'right', fontStyle: 'bold' } },
+      '',
+      formatAmount(totals[companies.kumaran]),
+      '',
+      formatAmount(totals[companies.santhosh]),
+      '',
+      formatAmount(totals[companies.raghavendra]),
+      '',
+    ])
+  
+    let gstDetails = {}
+    if (gstPercent > 0) {
+      const gstRate = gstPercent / 100
+      for (const company of Object.values(companies)) {
+        const cgst = Math.round(totals[company] * gstRate)
+        const sgst = Math.round(totals[company] * gstRate)
+        const totalWithGst = totals[company] + cgst + sgst
+        gstDetails[company] = { cgst, sgst, totalWithGst }
+      }
+  
+      rows.push([
+        { content: `CGST (${gstPercent}%)`, colSpan: 3, styles: { halign: 'right' } },
+        '',
+        formatAmount(gstDetails[companies.kumaran].cgst),
+        '',
+        formatAmount(gstDetails[companies.santhosh].cgst),
+        '',
+        formatAmount(gstDetails[companies.raghavendra].cgst),
+        '',
+      ])
+  
+      rows.push([
+        { content: `SGST (${gstPercent}%)`, colSpan: 3, styles: { halign: 'right' } },
+        '',
+        formatAmount(gstDetails[companies.kumaran].sgst),
+        '',
+        formatAmount(gstDetails[companies.santhosh].sgst),
+        '',
+        formatAmount(gstDetails[companies.raghavendra].sgst),
+        '',
+      ])
+  
+      rows.push([
+        { content: 'Grand Total (Incl. GST)', colSpan: 3, styles: { halign: 'right', fontStyle: 'bold' } },
+        '',
+        formatAmount(gstDetails[companies.kumaran].totalWithGst),
+        '',
+        formatAmount(gstDetails[companies.santhosh].totalWithGst),
+        '',
+        formatAmount(gstDetails[companies.raghavendra].totalWithGst),
+        '',
+      ])
+    }
+  
     autoTable(doc, {
       startY: 40,
       head: [
@@ -468,19 +548,12 @@ const Reports = () => {
           { content: 'No', rowSpan: 2, styles: { halign: 'center' } },
           { content: 'Description Of Work', rowSpan: 2 },
           { content: 'Qty', rowSpan: 2, styles: { halign: 'center' } },
-          { content: 'Rate by Sri Kumaran', colSpan: 2, styles: { halign: 'center' } },
-          { content: 'Rate by Santhosh', colSpan: 2, styles: { halign: 'center' } },
-          { content: 'Rate by Raghavendra', colSpan: 2, styles: { halign: 'center' } },
+          { content: 'Sri Kumaran Electricals', colSpan: 2, styles: { halign: 'center' } },
+          { content: 'Santhosh Enterprises', colSpan: 2, styles: { halign: 'center' } },
+          { content: 'Sri Raghavendra Electricals', colSpan: 2, styles: { halign: 'center' } },
           { content: 'Remarks', rowSpan: 2 },
         ],
-        [
-          'Rate',
-          'Amount',
-          'Rate',
-          'Amount',
-          'Rate',
-          'Amount',
-        ],
+        ['Rate', 'Amount', 'Rate', 'Amount', 'Rate', 'Amount'],
       ],
       body: rows,
       styles: {
@@ -509,63 +582,27 @@ const Reports = () => {
       },
       theme: 'grid',
     })
-    
-
-    const gstRate = gstPercent / 100;
-    const gstDetails = {};
-    for (const company of Object.values(companies)) {
-      const cgst = totals[company] * gstRate;  // full gstPercent for CGST
-      const sgst = totals[company] * gstRate;  // full gstPercent for SGST
-      const totalWithGst = totals[company] + cgst + sgst;
-      gstDetails[company] = {
-        cgst,
-        sgst,
-        totalWithGst,
-      };
+  
+    // Lowest calculation
+    let lowestCompany
+    if (gstPercent > 0) {
+      lowestCompany = Object.values(companies).reduce((a, b) =>
+        gstDetails[a].totalWithGst < gstDetails[b].totalWithGst ? a : b
+      )
+    } else {
+      lowestCompany = Object.values(companies).reduce((a, b) =>
+        totals[a] < totals[b] ? a : b
+      )
     }
-    
-    
-    const finalY = doc.lastAutoTable.finalY + 10;
-    
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Total Quoted Amount:', 14, finalY);
-    
-    doc.setFont('helvetica', 'normal');
-    
-    const lineSpacing = 6;
-    let currentY = finalY + lineSpacing;
-    
-    // Show totals without GST
-    doc.text(`Sri Kumaran: ${totals[companies.kumaran].toLocaleString('en-IN')}`, 14, currentY);
-    currentY += lineSpacing;
-    doc.text(`Santhosh Enterprises: ${totals[companies.santhosh].toLocaleString('en-IN')}`, 14, currentY);
-    currentY += lineSpacing;
-    doc.text(`Sri Raghavendra: ${totals[companies.raghavendra].toLocaleString('en-IN')}`, 14, currentY);
-    currentY += lineSpacing * 2;
-    
-    // Show CGST, SGST, and total with GST for each company
-    for (const company of Object.values(companies)) {
-      const { cgst, sgst, totalWithGst } = gstDetails[company];
-      doc.text(`${company} CGST (${gstPercent}%): ${cgst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 14, currentY);
-      currentY += lineSpacing;
-      doc.text(`${company} SGST (${gstPercent}%): ${sgst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 14, currentY);
-      currentY += lineSpacing;
-      doc.setFont('helvetica', 'bold');
-      doc.text(`${company} Total Amount (incl. GST): ${totalWithGst.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`, 14, currentY);
-      doc.setFont('helvetica', 'normal');
-      currentY += lineSpacing * 2;
-    }
-    
-    const lowestCompany = Object.keys(totals).reduce((a, b) => (totals[a] < totals[b] ? a : b));
-    doc.setFont('helvetica', 'bold');
-    doc.text(`Lowest Rate For: ${lowestCompany.toUpperCase()}`, 14, currentY);
-    
-
+  
+    const finalY = doc.lastAutoTable.finalY + 10
+    doc.setFont('helvetica', 'bold')
+    doc.text(`Lowest Rate For: ${lowestCompany.toUpperCase()}`, 14, finalY)
+  
     const blobURL = doc.output('bloburl')
     window.open(blobURL)
   }
-
+  
 
 
 

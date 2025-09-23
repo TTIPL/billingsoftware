@@ -575,9 +575,9 @@ const BillingCreation = () => {
 
       <CRow className="mt-4">
         <CCol className="d-flex justify-content-end">
-          <CButton color="success" onClick={generatePDFDownload} style={{margin:"10px"}}>
+          {/* <CButton color="success" onClick={generatePDFDownload} style={{margin:"10px"}}>
             Download PDF
-          </CButton>
+          </CButton> */}
           <CButton color="primary" onClick={handleSubmit} style={{margin:"10px"}}>
           Create Billing
           </CButton>
