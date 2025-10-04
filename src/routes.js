@@ -119,7 +119,6 @@ const routes = [
   { path: '/quantityType', name: 'Quantity Type', element: quantityType },
   { path: '/reports', name: 'Reports', element: Reports },
   { path: '/masters', name: 'MasterList', element: MasterList },
-  parentProduct
 ]
 
 export default routes

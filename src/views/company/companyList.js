@@ -151,6 +151,7 @@ const CompanyList = () => {
               value={formData.company_name}
               onChange={handleChange}
               className="mb-2"
+              disabled="true"
             />
             <CFormInput
               label="Email"

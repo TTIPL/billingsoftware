@@ -25,6 +25,7 @@ import AppSidebar from './components/AppSidebar'
 import AppHeader from './components/AppHeader'
 import UserList from './views/users/userList'
 import BillingCreation from './views/billings/billingCreation'
+import BillingList from './views/billings/billingList'
 import ProductList from './views/products/productList'
 import QuantityType from './views/quantity/quantityType'
 import ParentProduct from './views/master_products/masterproductList'
@@ -338,6 +339,24 @@ const App = () => {
 
           <Route
             path="/billingList"
+            element={
+              <PrivateRoute>
+                <div>
+                  <AppSidebar />
+                  <div className="wrapper d-flex flex-column min-vh-100">
+                    <AppHeader />
+                    <div className="body flex-grow-1 p-3">
+                      <BillingList />
+                    </div>
+                    <AppFooter />
+                  </div>
+                </div>
+              </PrivateRoute>
+            }
+          />
+
+<Route
+            path="/billingCreation"
             element={
               <PrivateRoute>
                 <div>

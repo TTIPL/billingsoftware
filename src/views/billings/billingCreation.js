@@ -24,21 +24,10 @@ import axios from 'axios'
 import { createBilling } from '../services/api'
 import { BrowserRouter as Router, Routes, Route, Navigate, useNavigate } from 'react-router-dom'
 import { api_url } from '../../../config'
-///import 'jspdf-autotable'; // This *extends* jsPDF with the autoTable plugin
-
-
-// Setup pdfMake fonts
 
 const BillingCreation = () => {
   const navigate = useNavigate();
-  const [billingInfo, setBillingInfo] = useState({
-    description: '',
-    customerName: '',
-    companyName: '',
-  })
-
   const [billings, setBillings] = useState([])
-
   const [parentList, setParentList] = useState([])
   const [customerList, setCustomerList] = useState([])
   const [productOptions, setProductOptions] = useState([])
@@ -83,125 +72,7 @@ const BillingCreation = () => {
   }
 
   
-  const generateComparativePDF = (data) => {
-    const doc = new jsPDF()
-  
-    doc.setFontSize(12)
-    doc.setFont('helvetica', 'bold')
-    doc.text('COMPARATIVE STATEMENT', 75, 10)
-  
-    doc.setFontSize(10)
-    doc.setFont('helvetica', 'normal')
-    doc.text('Name Of The Union     : Poondi', 14, 20)
-    doc.text('Name Of The Panchayat : Melakkarumannur', 14, 26)
-    doc.text('Name Of the Work      : ____________________', 14, 32)
-  
-    const grouped = {}
-    const totals = {
-      'Sri Kumaran': 0,
-      'Santhosh Enterprises': 0,
-      'Sri Raghavendra': 0,
-    }
-  
-    data.forEach((item) => {
-      const key = item.prod_name
-      if (!grouped[key]) grouped[key] = {}
-  
-      grouped[key][item.company_name] = {
-        qty: item.prod_qty,
-        rate: parseFloat(item.prod_price),
-        amount: parseFloat(item.total_amt),
-      }
-  
-      totals[item.company_name] += parseFloat(item.total_amt)
-    })
-  
-    const companies = {
-      kumaran: 'Sri Kumaran',
-      santhosh: 'Santhosh Enterprises',
-      raghavendra: 'Sri Raghavendra',
-    }
-  
-    const rows = []
-    let index = 1
-  
-    for (const prodName in grouped) {
-      const row = grouped[prodName]
-  
-      rows.push([
-        index++,
-        prodName,
-        row[companies.kumaran]?.qty || '-',
-        row[companies.kumaran]?.rate?.toFixed(2) || '-',
-        row[companies.kumaran]?.amount?.toFixed(2) || '-',
-        row[companies.santhosh]?.rate?.toFixed(2) || '-',
-        row[companies.santhosh]?.amount?.toFixed(2) || '-',
-        row[companies.raghavendra]?.rate?.toFixed(2) || '-',
-        row[companies.raghavendra]?.amount?.toFixed(2) || '-',
-        '',
-      ])
-    }
 
-    autoTable(doc, {
-      startY: 40,
-      head: [[
-        'Sl.No',
-        'Description Of Work',
-        'Qty',
-        'Rate by Sri Kumaran',
-        'Amount',
-        'Rate by Santhosh',
-        'Amount',
-        'Rate by Raghavendra',
-        'Amount',
-        'Remarks',
-      ]],
-      body: rows,
-      styles: { fontSize: 8 },
-      headStyles: { fillColor: [220, 220, 220], textColor: 0 },
-      columnStyles: {
-        0: { cellWidth: 10 },
-        1: { cellWidth: 50 },
-        2: { cellWidth: 12 },
-        3: { cellWidth: 18 },
-        4: { cellWidth: 18 },
-        5: { cellWidth: 18 },
-        6: { cellWidth: 18 },
-        7: { cellWidth: 18 },
-        8: { cellWidth: 18 },
-        9: { cellWidth: 18 },
-      },
-    })
-  
-    const finalY = doc.lastAutoTable.finalY + 10
-
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'bold');
-    doc.text('Total Quoted Amount:', 14, finalY);
-    
-    doc.setFont('helvetica', 'normal');
-    
-    const lineSpacing = 6; 
-    let currentY = finalY + lineSpacing;
-    
-    doc.text(`Sri Kumaran:${totals[companies.kumaran].toLocaleString('en-IN')}`, 14, currentY);
-    currentY += lineSpacing;
-    
-    doc.text(`Santhosh Enterprises: ${totals[companies.santhosh].toLocaleString('en-IN')}`, 14, currentY);
-    currentY += lineSpacing;
-    
-    doc.text(`Sri Raghavendra: ${totals[companies.raghavendra].toLocaleString('en-IN')}`, 14, currentY);
-    
-    currentY += lineSpacing;
- 
-    const lowestCompany = Object.keys(totals).reduce((a, b) => (totals[a] < totals[b] ? a : b))
-    doc.setFont('helvetica', 'bold')
-    doc.text(`Lowest Rate For: ${lowestCompany.toUpperCase()}`, 14, finalY + 30)
-  
-    const blobURL = doc.output('bloburl')
-    window.open(blobURL)
-  }
-  
   
   
 
@@ -213,8 +84,6 @@ const BillingCreation = () => {
         label: p.prod_name,
         price: p.prod_price_1,
       }));
-  
-      console.log(res.data);
       setProductOptions(options);
     } catch (err) {
       console.error('Error fetching products', err);
@@ -226,9 +95,9 @@ const BillingCreation = () => {
     if (form.parent_id) {
       fetchProductsByParent(form.parent_id);
     } else {
-      setProductOptions([]); // clear options if no parent
+      setProductOptions([]);
     }
-  }, [form.parent_id]);  // ✅ depend only on parent_id
+  }, [form.parent_id]);  
   
 
 
@@ -240,150 +109,18 @@ const BillingCreation = () => {
     }))
   }
 
-  const totalAmount = form.products.reduce((sum, item) => sum + item.total, 0)
-
-
   const handleSubmit = async () => {
     try {
-      const response = await createBilling(form);
+      await createBilling(form);
       alert("Billing created successfully!");
-      navigate('/dashboard')
+      navigate('/billingList')
       
     } catch (error) {
       alert("Failed to create billing");
     }
   };
 
-  const generatePDFDownload = () => {
-    console.log("pdf_label_support");
-  
-    const mastersData = JSON.parse(localStorage.getItem('masters') || '[]');
-    const masterSettings = Array.isArray(mastersData) ? mastersData[0] : mastersData;
-  
-    const gstValueString = masterSettings?.gst_value || '0';
-    const gstPercent = parseFloat(gstValueString.replace('%', '')) || 0;
-  
-    const settings = {
-      gstSupport: !!masterSettings?.gst_support,
-      pdfLabelSupport: !!masterSettings?.pdf_label_support,
-    };
-  
-    generateUnifiedPDF(form, gstPercent, settings);
-  };
-  
-  const generateUnifiedPDF = (form, gstPercent, settings) => {
-    const doc = new jsPDF();
-    const gstRate = gstPercent / 100;
-    const pageWidth = doc.internal.pageSize.getWidth();
-  
-    const totalAmount = form.products.reduce((sum, p) => sum + Number(p.total), 0);
-    const cgstAmount = totalAmount * gstRate;
-    const sgstAmount = totalAmount * gstRate;
-    const grandTotal = totalAmount + cgstAmount + sgstAmount;
-  
-    // Optional: Add custom header if pdfLabelSupport is true
-    if (settings.pdfLabelSupport) {
-      addCustomHeader(doc, pageWidth);
-    }
-  
-    // Table section
-    const startY = 70;
-    autoTable(doc, {
-      startY,
-      head: [['S.NO', 'PARTICULARS', 'QTY', 'RATE', 'AMOUNT']],
-      body: form.products.map((p, i) => [
-        i + 1,
-        p.productName,
-        p.qty,
-        p.price,
-        p.total,
-      ]),
-      styles: {
-        fontSize: 10,
-        cellPadding: { top: 3, right: 3, bottom: 3, left: 3 },
-        valign: 'middle',
-        halign: 'center',
-        lineColor: [0, 0, 0],
-        lineWidth: 0.3,
-      },
-      headStyles: {
-        fillColor: [220, 220, 220],
-        textColor: [0, 0, 0],
-        fontStyle: 'bold',
-        halign: 'center',
-        lineWidth: 0.5,
-        lineColor: [0, 0, 0],
-      },
-      bodyStyles: {
-        fillColor: false,
-        textColor: [0, 0, 0],
-      },
-      columnStyles: {
-        0: { cellWidth: 15, halign: 'center' },
-        1: { cellWidth: 90, halign: 'left' },
-        2: { cellWidth: 20, halign: 'center' },
-        3: { cellWidth: 25, halign: 'right' },
-        4: { cellWidth: 30, halign: 'right' },
-      },
-      didDrawPage: (data) => {
-        const finalY = data.cursor.y + 10;
-        const marginLeft = data.settings.margin.left;
-  
-        doc.setFontSize(11);
-        doc.setFont('helvetica', 'bold');
-        doc.text('Total Quoted Amount:', marginLeft, finalY);
-  
-        doc.setFont('helvetica', 'normal');
-        doc.text(`Total Amount: ${totalAmount.toFixed(2)}`, marginLeft, finalY + 8);
-  
-        if (settings.gstSupport && gstPercent > 0) {
-          doc.text(`CGST (${gstPercent}%): ${cgstAmount.toFixed(2)}`, marginLeft, finalY + 16);
-          doc.text(`SGST (${gstPercent}%): ${sgstAmount.toFixed(2)}`, marginLeft, finalY + 24);
-  
-          doc.setFont('helvetica', 'bold');
-          doc.text(`Grand Total (incl. GST): ${grandTotal.toFixed(2)}`, marginLeft, finalY + 36);
-        }
-      },
-    });
-  
-    const pdfBlobUrl = doc.output('bloburl');
-    window.open(pdfBlobUrl, '_blank');
-  };
-  
-  const addCustomHeader = (doc, pageWidth) => {
-    const gurudevText = 'Jai Gurudev';
-    const textWidth = doc.getTextWidth(gurudevText);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(10);
-    doc.text(gurudevText, (pageWidth - textWidth) / 2, 10);
-  
-    // Optional: Replace this URL with actual base64 if needed
-    const muruganImageBase64 =
-      'https://thumbs.dreamstime.com/b/sketch-lord-murugan-kartikeya-outline-editable-vector-illustration-drawing-184058651.jpg';
-    doc.addImage(muruganImageBase64, 'PNG', 10, 10, 25, 25);
-  
-    // Company Title
-    doc.setFontSize(16);
-    doc.setFont('helvetica', 'bold');
-    doc.setTextColor(255, 0, 0);
-    doc.text('SRI KUMARAN ELECTRICALS', 60, 17);
-  
-    doc.setFontSize(10);
-    doc.setFont('helvetica', 'normal');
-    doc.setTextColor(0, 0, 0);
-    doc.text('All Types of Motor Repairing with Panel Board Starters', 60, 25);
-    doc.text('Panchayat Board Motors and Engineering Works done here.', 54, 30);
-  
-    doc.setFont('helvetica', 'normal');
-    doc.text('Prop. : SANJEEVA', 160, 15);
-    doc.text('Cell : 7708801975', 160, 20);
-    doc.text('No.2, Saravana Complex, Nagalapuram Road, Uthukottai - 602 026.', 55, 42);
-  
-    // Document Title
-    doc.setFont('helvetica', 'bold');
-    doc.setFontSize(12);
-    doc.text('QUATATION', 90, 36);
-  };
+
   
 
   return (
@@ -575,9 +312,6 @@ const BillingCreation = () => {
 
       <CRow className="mt-4">
         <CCol className="d-flex justify-content-end">
-          {/* <CButton color="success" onClick={generatePDFDownload} style={{margin:"10px"}}>
-            Download PDF
-          </CButton> */}
           <CButton color="primary" onClick={handleSubmit} style={{margin:"10px"}}>
           Create Billing
           </CButton>

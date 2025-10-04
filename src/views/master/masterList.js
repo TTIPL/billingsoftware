@@ -132,9 +132,9 @@ const MasterList = () => {
                 </CCol>
               </CRow>
 
-              <CButton type="submit" color={isEdit ? 'warning' : 'primary'} className="me-2">
+              {isEdit && <CButton type="submit" color={isEdit ? 'warning' : 'primary'} className="me-2">
                 {isEdit ? 'Update' : 'Create'}
-              </CButton>
+              </CButton>  }
               {isEdit && (
                 <CButton type="button" color="secondary" onClick={resetForm}>
                   Cancel
