@@ -416,6 +416,7 @@ const BilllingList = () => {
     })
   }
 
+
   const generateUnifiedPDF = (formData, gstPercent, settings) => {
     const doc = new jsPDF();
     const gstRate = gstPercent / 100;
@@ -433,12 +434,12 @@ const BilllingList = () => {
     const totalAmountRaw = products.reduce((sum, p) => sum + p.total, 0);
     const cgstAmountRaw = totalAmountRaw * gstRate;
     const sgstAmountRaw = totalAmountRaw * gstRate;
-    const grandTotalRaw = totalAmountRaw + cgstAmountRaw + sgstAmountRaw;
+    const grandTotalRaw =  Math.round(parseFloat(totalAmountRaw)) +  Math.round(parseFloat(cgstAmountRaw)) +  Math.round(parseFloat(sgstAmountRaw));
   
-    const totalAmount = Math.round(totalAmountRaw);
-    const cgstAmount = Math.round(cgstAmountRaw);
-    const sgstAmount = Math.round(sgstAmountRaw);
-    const grandTotal = Math.round(grandTotalRaw);
+    const totalAmount =  Math.round(parseFloat(totalAmountRaw));
+    const cgstAmount = Math.round(parseFloat(cgstAmountRaw));
+    const sgstAmount = Math.round(parseFloat(sgstAmountRaw));
+    const grandTotal = Math.round(parseFloat(grandTotalRaw));
   
     // Header
     if (settings.pdfLabelSupport) {
@@ -446,7 +447,7 @@ const BilllingList = () => {
     }
   
     const customer = formData[0];
-    const customerStartY = 68;
+    const customerStartY = 75;
   
     doc.setFontSize(10);
     doc.setFont("times", "normal");
@@ -485,7 +486,7 @@ const BilllingList = () => {
           { content: sgstAmount.toLocaleString(), styles: { halign: "right", fontStyle: "bold" } },
         ],
         [
-          { content: "Grand Total (Incl. GST)", colSpan: 4, styles: { halign: "right", fontStyle: "bold" } },
+          { content: "Gran Total (Incl. GST)", colSpan: 4, styles: { halign: "right", fontStyle: "bold" } },
           { content: grandTotal.toLocaleString(), styles: { halign: "right", fontStyle: "bold" } },
         ]
       );
@@ -493,7 +494,7 @@ const BilllingList = () => {
   
     // Render table
     autoTable(doc, {
-      startY: 80,
+      startY: 85,
       head: [["S.NO", "PARTICULARS", "QTY", "RATE", "AMOUNT"]],
       body: productRows,
       styles: {
@@ -544,30 +545,91 @@ const BilllingList = () => {
   };
   
 
-  const addCustomHeader = (doc, pageWidth, cust) => {
-    const gurudevText = 'Jai Gurudev'
-    const textWidth = doc.getTextWidth(gurudevText)
-    doc.setFont('times', 'normal')
-    doc.setFontSize(10)
-    doc.text(gurudevText, (pageWidth - textWidth) / 2, 10)
+const addCustomHeader = (doc, pageWidth, cust) => {
+  const header_content = [
+    {
+      company_name: "sri kumaran electricals",
+      line_1: "All Types of Motor Repairing with Panel Board Starters",
+      line_2: "Panchayat Board Motors and Engineering Works done here.",
+      address: "No.2, Saravana Complex, Nagalapuram Road, Uthukottai - 602 026.",
+    },
+    {
+      company_name: "santhosh enterprises",
+      line_1: "Tecmo Pump Set Dealers IS/ISO 9002 & Hardwares",
+      line_2: "Dealers in Crompton Greaves Lights & True Bore Pipe",
+      address: "No.141 /A5, G.N.T. Road, Karanodai, Chennai - 600 067",
+    },
+    {
+      company_name: "raghavendra enterprises",
+      line_1:
+        "We Undertake all types of bore well plumbing works and electrical contracts",
+      line_2:
+        "Dealers in Submotor Pumps, G.I. Pipes, PVC Supreme Pipes I.S.I 9001 & Bore Pipes",
+      address: "No.1/141, G.N.T. Road, Sholavaram, Chennai - 600 067",
+    },
+  ];
+
+  // ✅ Find matching company (case-insensitive)
+  const headerData =
+    header_content.find(
+      (h) =>
+        h.company_name.trim().toLowerCase() ===
+        cust.company_name.trim().toLowerCase()
+    ) || header_content[0];
+
+  // --- Common setup ---
+  doc.setFont("times", "normal");
+  doc.setTextColor(0, 0, 0);
+
+  // ✅ Only for Sri Kumaran Electricals → Jai Gurudev + Murugan logo
+  if (headerData.company_name.toLowerCase() === "sri kumaran electricals") {
+    const gurudevText = "Jai Gurudev";
+    const textWidth = doc.getTextWidth(gurudevText);
+    doc.setFontSize(10);
+    doc.text(gurudevText, (pageWidth - textWidth) / 2, 10);
+
     const muruganImageBase64 =
-      'https://thumbs.dreamstime.com/b/sketch-lord-murugan-kartikeya-outline-editable-vector-illustration-drawing-184058651.jpg'
-    doc.addImage(muruganImageBase64, 'PNG', 10, 10, 25, 25)
-    doc.setFontSize(16)
-    doc.setFont('times', 'bold')
-    doc.setTextColor(255, 0, 0)
-    doc.text(cust.company_name.toUpperCase(), 75, 17)
-    doc.setFontSize(10)
-    doc.setFont('times', 'normal')
-    doc.setTextColor(0, 0, 0)
-    doc.text('All Types of Motor Repairing with Panel Board Starters', 60, 25)
-    doc.text('Panchayat Board Motors and Engineering Works done here.', 54, 30)
-    doc.setFont('times', 'normal')
-    doc.text('No.2, Saravana Complex, Nagalapuram Road, Uthukottai - 602 026.', 55, 42)
-    doc.setFont('times', 'bold')
-    doc.setFontSize(12)
-    doc.text('QUATATION', 90, 36)
+      "https://thumbs.dreamstime.com/b/sketch-lord-murugan-kartikeya-outline-editable-vector-illustration-drawing-184058651.jpg";
+    doc.addImage(muruganImageBase64, "PNG", 15, 12, 22, 22); // left logo
   }
+
+  // --- Company name ---
+  doc.setFont("times", "bold");
+  doc.setFontSize(16);
+  doc.setTextColor(255, 0, 0);
+
+  const companyText = headerData.company_name.toUpperCase();
+  const companyWidth = doc.getTextWidth(companyText);
+  doc.text(companyText, (pageWidth - companyWidth) / 2, 20);
+
+  // --- Taglines / line_1 and line_2 ---
+  doc.setFont("times", "normal");
+  doc.setFontSize(12);
+  doc.setTextColor(0, 0, 0);
+
+  const line1Width = doc.getTextWidth(headerData.line_1);
+  const line2Width = doc.getTextWidth(headerData.line_2);
+  doc.text(headerData.line_1, (pageWidth - line1Width) / 2, 26);
+  doc.text(headerData.line_2, (pageWidth - line2Width) / 2, 31);
+
+  // --- Address ---
+  const addrWidth = doc.getTextWidth(headerData.address);
+  doc.text(headerData.address, (pageWidth - addrWidth) / 2, 37);
+
+  // // --- Quotation title ---
+  // doc.setFont("times", "bold");
+  // doc.setFontSize(12);
+  // doc.setTextColor(0, 0, 0);
+  // const quotationText = "QUOTATION";
+  // const quotationWidth = doc.getTextWidth(quotationText);
+  // doc.text(quotationText, (pageWidth - quotationWidth) / 2, 43);
+
+  // --- Optional separator line for neatness ---
+  doc.setDrawColor(0, 0, 0);
+  doc.setLineWidth(0.3);
+  doc.line(15, 45, pageWidth - 15, 45);
+};
+
 
   const formatDateUTC = (dateString) => {
     if (!dateString) return ''
