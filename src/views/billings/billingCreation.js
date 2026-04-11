@@ -31,7 +31,13 @@ const BillingCreation = () => {
   useEffect(() => {
     fetchgetBillingDetails()
   }, [])
-
+    const mastersData = JSON.parse(localStorage.getItem('masters') || '[]')
+    const masterSettings = Array.isArray(mastersData) ? mastersData[0] : mastersData
+    const gstPercent = parseFloat(masterSettings?.gst_value?.replace('%', '')) || 0
+    const settings = {
+      gstSupport: !!masterSettings?.gst_support,
+      pdfLabelSupport: !!masterSettings?.pdf_label_support,
+    }
 
   const fetchgetBillingDetails = () => {
     axios.get(`${api_url}products/billing-details/2`)
@@ -390,14 +396,25 @@ const BillingCreation = () => {
                       <strong>Grand Total:</strong>
                     </CTableDataCell>
                     <CTableDataCell colSpan="2">
-                      <strong style={{ fontSize: '1.1rem', color: '#2eb85c' }}>
-                        {/* Format to 2 decimal places with commas */}
-                        {Number(jsonData.total_amount || 0).toLocaleString(undefined, {
-                          minimumFractionDigits: 2,
-                          maximumFractionDigits: 2,
-                        })}
-                      </strong>
-                    </CTableDataCell>
+  <strong style={{ fontSize: '1.1rem', color: '#2eb85c' }}>
+    {settings.gstSupport ? "Grand Total With GST" : "Total"} :{" "}
+    {(() => {
+      const total = Number(jsonData.total_amount || 0);
+
+      const gstRate = gstPercent / 100;
+      const gstValue = Math.round(total * gstRate);
+
+      const grandTotal = total + (gstValue * 2);
+
+      const finalValue = settings.gstSupport ? grandTotal : total;
+
+      return finalValue.toLocaleString('en-IN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      });
+    })()}
+  </strong>
+</CTableDataCell>
                   </CTableRow>
                 </tfoot>
               )}
