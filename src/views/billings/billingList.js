@@ -148,7 +148,7 @@ const generateUnifiedPDF = (formData, gstPercent, settings) => {
 
   headerLines.forEach((line, index) => {
     doc.setFont("times", "normal").setFontSize(10);
-    doc.text(line, 15, 60 + (index * 6));
+    doc.text(line, 15, 80 + (index * 6));
   });
 
   // =========================
@@ -203,7 +203,7 @@ const generateUnifiedPDF = (formData, gstPercent, settings) => {
   // TABLE
   // =========================
   autoTable(doc, {
-    startY: 80,
+    startY: 100,
     head: [["S.NO", "PARTICULARS", "METIRIAL", "RATE", "AMOUNT (Rs)"]],
     body: productRows,
 
