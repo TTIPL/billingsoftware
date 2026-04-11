@@ -24,12 +24,12 @@ const _nav = [
     to: '/userList',
     icon: <CIcon icon={cilUser} customClassName="nav-icon" />,
   },
-  {
-    component: CNavItem,
-    name: 'Customers',
-    to: '/customerList',
-    icon: <CIcon icon={cilPeople} customClassName="nav-icon" />,
-  },
+  // {
+  //   component: CNavItem,
+  //   name: 'Customers',
+  //   to: '/customerList',
+  //   icon: <CIcon icon={cilPeople} customClassName="nav-icon" />,
+  // },
   {
     component: CNavItem,
     name: 'Company',
@@ -42,25 +42,25 @@ const _nav = [
     to: '/masterList',
     icon: <CIcon icon={cilCalculator} customClassName="nav-icon" />,
   },
-  {
-    component: CNavItem,
-    name: 'Quantity Type',
-    to: '/quantityType',
-    icon: <CIcon icon={cilStar} customClassName="nav-icon" />,
-  },
-  {
-    component: CNavItem,
-    name: 'Parent Products',
-    to: '/parentProduct',
-    icon: <CIcon icon={cilStar} customClassName="nav-icon" />,
-  },
+  // {
+  //   component: CNavItem,
+  //   name: 'Quantity Type',
+  //   to: '/quantityType',
+  //   icon: <CIcon icon={cilStar} customClassName="nav-icon" />,
+  // },
+  // {
+  //   component: CNavItem,
+  //   name: 'Parent Products',
+  //   to: '/parentProduct',
+  //   icon: <CIcon icon={cilStar} customClassName="nav-icon" />,
+  // },
 
-  {
-    component: CNavItem,
-    name: 'Products',
-    to: '/productlist',
-    icon: <CIcon icon={cilStar} customClassName="nav-icon" />,
-  },
+  // {
+  //   component: CNavItem,
+  //   name: 'Products',
+  //   to: '/productlist',
+  //   icon: <CIcon icon={cilStar} customClassName="nav-icon" />,
+  // },
 
   {
     component: CNavItem,
@@ -68,12 +68,12 @@ const _nav = [
     to: '/billingList',
     icon: <CIcon icon={cilDescription} customClassName="nav-icon" />,
   },
-  {
-    component: CNavItem,
-    name: 'Reports',
-    to: '/reports',
-    icon: <CIcon icon={cilDescription} customClassName="nav-icon" />,
-  },
+  // {
+  //   component: CNavItem,
+  //   name: 'Reports',
+  //   to: '/reports',
+  //   icon: <CIcon icon={cilDescription} customClassName="nav-icon" />,
+  // },
 
 ]
 
