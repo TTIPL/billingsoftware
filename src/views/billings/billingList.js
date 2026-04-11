@@ -86,7 +86,8 @@ const generatePDFDownload = (row, orgId) => {
           prod_price: increasedRate,
           total_amt: increasedAmount,
           company_name: getCompanyNameById(orgId),
-          cust_name: rawData.title 
+          cust_name: rawData.title ,
+          officer: rawData.officer 
         };
       });
 
@@ -119,29 +120,36 @@ const generateUnifiedPDF = (formData, gstPercent, settings) => {
   const doc = new jsPDF();
   const pageWidth = doc.internal.pageSize.getWidth();
   const customer = formData[0];
-  const formatCurrency = (val) => Number(val).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-      if (settings.pdfLabelSupport) {
-      addCustomHeader(doc, pageWidth, formData[0]);
-    }
-  
+  // =========================
+  // FORMAT FUNCTION (.00)
+  // =========================
+  const formatCurrency = (val) =>
+    Number(val).toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
 
-    const customerStartY = 75;
-  
-    doc.setFontSize(10);
-    doc.setFont("times", "normal");
-    doc.setTextColor(0, 0, 0);
-  //  doc.text(` ${customer.cust_name}`, 14, customerStartY);
-   
+  if (settings.pdfLabelSupport) {
+    addCustomHeader(doc, pageWidth, formData[0]);
+  }
+
+  // =========================
+  // CUSTOMER HEADER
+  // =========================
   const headerLines = [
-    "M/S The special officer",
-    customer.cust_name || "Amambakkam panchayat", 
+     customer.officer,
+    customer.cust_name,
   ];
+
   headerLines.forEach((line, index) => {
+    doc.setFont("times", "normal").setFontSize(10);
     doc.text(line, 15, 60 + (index * 6));
   });
 
-  // 2. Body Data
+  // =========================
+  // BODY DATA
+  // =========================
   const productRows = formData.map((p, i) => [
     i + 1,
     p.prod_name,
@@ -150,55 +158,68 @@ const generateUnifiedPDF = (formData, gstPercent, settings) => {
     formatCurrency(p.total_amt)
   ]);
 
-  // 3. Totals Calculation
+  // =========================
+  // TOTAL CALCULATION
+  // =========================
   const subtotal = formData.reduce((sum, p) => sum + p.total_amt, 0);
   const gstRate = gstPercent / 100;
   const tax = Math.round(subtotal * gstRate);
   const grandTotal = subtotal + (tax * 2);
 
-  // 4. Styles for "Invisible" Left Footer
-  const noLeftInternalLines = { lineWidth: { left: 0.5, right: 0, top: 0, bottom: 0 } };
-  const bottomTableClose = { lineWidth: { left: 0.5, right: 0, top: 0, bottom: 0.5 } };
-
-  // // 5. Add Footer Rows
-  // productRows.push([
-  //   { content: "", colSpan: 3, styles: noLeftInternalLines },
-  //   { content: "Subtotal", styles: { halign: "right", fontStyle: "bold" } },
-  //   { content: formatCurrency(subtotal), styles: { halign: "right", fontStyle: "bold" } }
-  // ]);
-
-    if (settings.gstSupport && gstPercent > 0) {
-      productRows.push([
-      { content: "", colSpan: 3, styles: noLeftInternalLines },
-      { content: `CGST (${gstPercent}%)`, styles: { halign: "right", fontStyle: "bold" } },
-      { content: formatCurrency(tax), styles: { halign: "right", fontStyle: "bold" } }
-    ]);
+  // =========================
+  // FOOTER ROWS
+  // =========================
+  if (settings.gstSupport && gstPercent > 0) {
     productRows.push([
-      { content: "", colSpan: 3, styles: noLeftInternalLines },
-      { content: `SGST (${gstPercent}%)`, styles: { halign: "right", fontStyle: "bold" } },
-      { content: formatCurrency(tax), styles: { halign: "right", fontStyle: "bold" } }
+      '', '', '',
+      'CGST (' + gstPercent + '%)',
+      formatCurrency(tax)
     ]);
+
     productRows.push([
-      { content: "", colSpan: 3, styles: bottomTableClose },
-      { content: "Gran Total (Incl. GST)", styles: { halign: "right", fontStyle: "bold" } },
-      { content: formatCurrency(grandTotal), styles: { halign: "right", fontStyle: "bold" } }
+      '', '', '',
+      'SGST (' + gstPercent + '%)',
+      formatCurrency(tax)
     ]);
-    } else {
-      productRows.push([
-      { content: "", colSpan: 3, styles: bottomTableClose },
-      { content: "TOTAL", styles: { halign: "right", fontStyle: "bold" } },
-      { content: formatCurrency(subtotal), styles: { halign: "right", fontStyle: "bold" } }
+
+    productRows.push([
+      '', '', '',
+      'Grand Total (Incl. GST)',
+      formatCurrency(grandTotal)
     ]);
-    }
+  } else {
+    productRows.push([
+      '', '', '',
+      'TOTAL',
+      formatCurrency(subtotal)
+    ]);
+  }
 
-
+  // =========================
+  // TABLE
+  // =========================
   autoTable(doc, {
     startY: 80,
     head: [["S.NO", "PARTICULARS", "METIRIAL", "RATE", "AMOUNT (Rs)"]],
     body: productRows,
-    theme: 'grid',
-    styles: { font: "times", fontSize: 10, lineColor: [0, 0, 0], lineWidth: 0.5, valign: 'middle' },
-    headStyles: { fillColor: [255, 255, 255], textColor: [0, 0, 0], fontStyle: 'bold', halign: 'center' },
+
+    // ❌ remove grid
+    theme: 'plain',
+
+    styles: {
+      font: "times",
+      fontSize: 10,
+      halign: 'center',
+      lineWidth: 0,
+      cellPadding: 2
+    },
+
+    headStyles: {
+      textColor: [0, 0, 0],
+      fontStyle: 'bold',
+      halign: 'center'
+    },
+
     columnStyles: {
       0: { cellWidth: 15, halign: 'center' },
       1: { cellWidth: 95, halign: 'left' },
@@ -206,9 +227,57 @@ const generateUnifiedPDF = (formData, gstPercent, settings) => {
       3: { cellWidth: 25, halign: 'center' },
       4: { cellWidth: 30, halign: 'right' },
     },
+
+    // =========================
+    // ALIGN FOOTER TEXT RIGHT
+    // =========================
+    didParseCell: function (data) {
+      const lastRowsStart = data.table.body.length - (settings.gstSupport ? 3 : 1);
+
+      if (data.section === 'body' && data.row.index >= lastRowsStart) {
+        if (data.column.index === 3) {
+          data.cell.styles.halign = 'right';
+          data.cell.styles.fontStyle = 'bold';
+        }
+      }
+    },
+
+    // =========================
+    // BORDER CONTROL
+    // =========================
+    didDrawCell: (data) => {
+      const { x, y, width, height } = data.cell;
+      doc.setDrawColor(0);
+
+      // HEADER → FULL BORDER
+      if (data.section === 'head') {
+        doc.setLineWidth(0.4);
+        doc.rect(x, y, width, height);
+      }
+
+      // BODY → ONLY COLUMN LINES
+      if (data.section === 'body') {
+        doc.setLineWidth(0.2);
+
+        // vertical lines
+        doc.line(x, y, x, y + height);
+        doc.line(x + width, y, x + width, y + height);
+
+        // bottom border for last row
+        const isLastRow = data.row.index === data.table.body.length - 1;
+        if (isLastRow) {
+          doc.setLineWidth(0.4);
+          doc.line(x, y + height, x + width, y + height);
+        }
+      }
+    }
   });
 
+  // =========================
+  // SIGNATURE
+  // =========================
   doc.text(`For ${customer.company_name}`, pageWidth - 15, doc.lastAutoTable.finalY + 30, { align: 'right' });
+
   window.open(doc.output("bloburl"), "_blank");
 };
 
@@ -229,158 +298,374 @@ const generateUnifiedPDF = (formData, gstPercent, settings) => {
     doc.line(15, 45, pageWidth - 15, 45)
   }
 
- const generateComparativePDFWithGST = (data, bill, gstPercent) => {
-    const doc = new jsPDF({ orientation: 'landscape' })
-    doc.setFont("times", "bold").text('COMPARATIVE STATEMENT', 148, 15, { align: 'center' })
-    
-    doc.setFontSize(10).setFont("times", "normal")
-    doc.text(`Name Of The Panchayat : ${bill.cust_name || 'M/S The special officer'}`, 14, 25)
-    doc.text(`Name Of the Work      : ${bill.billing_description || bill.title || ''}`, 14, 31)
+const generateComparativePDFWithGST = (data, bill) => {
+  const doc = new jsPDF({ orientation: 'landscape' });
 
-    const rows = [];
-    const totals = { kumaran: 0, santhosh: 0, raghavendra: 0 };
-
-    data.forEach((item, index) => {
-      const baseRate = parseFloat(item.RATE) || 0;
-      const qtyStr = item.QTY;
-      const qtyNum = parseFloat(String(qtyStr).replace(/[^0-9.]/g, '')) || 0;
-
-      const r_kumaran = Math.round(baseRate);
-      const a_kumaran = r_kumaran * qtyNum;
-      
-      const r_santhosh = Math.round(baseRate * 1.03);
-      const a_santhosh = r_santhosh * qtyNum;
-
-      const r_raghavendra = Math.round(baseRate * 1.02);
-      const a_raghavendra = r_raghavendra * qtyNum;
-
-      totals.kumaran += a_kumaran;
-      totals.santhosh += a_santhosh;
-      totals.raghavendra += a_raghavendra;
-
-      rows.push([
-        index + 1, item.PATICULARS, qtyStr,
-        r_kumaran.toLocaleString(), a_kumaran.toLocaleString(),
-        r_santhosh.toLocaleString(), a_santhosh.toLocaleString(),
-        r_raghavendra.toLocaleString(), a_raghavendra.toLocaleString(),
-        ''
-      ]);
+  // =========================
+  // FORMAT FUNCTION (.00)
+  // =========================
+  const format = (val) =>
+    Number(val).toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
     });
 
-    // Subtotal Row
+  // =========================
+  // TITLE
+  // =========================
+  doc.setFont("times", "bold");
+  doc.setFontSize(14);
+  doc.text('COMPARATIVE STATEMENT', 148, 15, { align: 'center' });
+
+  // =========================
+  // HEADER DETAILS
+  // =========================
+  doc.setFontSize(10).setFont("times", "normal");
+  doc.text(`Name Of The Union : ${bill.union || ''}`, 14, 25);
+  doc.text(`Name Of The Panchayat : ${bill.panchayat || ''}`, 14, 31);
+  doc.text(`Name Of the Work : ${bill.title || ''}`, 14, 37);
+
+  const rows = [];
+  const totals = { kumaran: 0, santhosh: 0, raghavendra: 0 };
+
+  // =========================
+  // DATA ROWS
+  // =========================
+  data.forEach((item, index) => {
+    const baseRate = parseFloat(item.RATE) || 0;
+    const qtyStr = item.QTY;
+    const qtyNum = parseFloat(String(qtyStr).replace(/[^0-9.]/g, '')) || 0;
+
+    const r_k = Math.round(baseRate);
+    const a_k = r_k * qtyNum;
+
+    const r_s = Math.round(baseRate * 1.02);
+    const a_s = r_s * qtyNum;
+
+    const r_r = Math.round(baseRate * 1.03);
+    const a_r = r_r * qtyNum;
+
+    totals.kumaran += a_k;
+    totals.santhosh += a_s;
+    totals.raghavendra += a_r;
+
     rows.push([
-      { content: 'Subtotal', colSpan: 3, styles: { halign: 'right', fontStyle: 'bold' } },
-      '', totals.kumaran.toLocaleString(),
-      '', totals.santhosh.toLocaleString(),
-      '', totals.raghavendra.toLocaleString(),
+      index + 1,
+      item.PATICULARS,
+      qtyStr,
+      format(r_k), format(a_k),
+      format(r_s), format(a_s),
+      format(r_r), format(a_r),
       ''
     ]);
+  });
 
-    if (gstPercent > 0) {
-      const gst = (val) => Math.round(val * (gstPercent / 100));
-      // CGST
-      rows.push([{ content: `CGST (${gstPercent}%)`, colSpan: 3, styles: { halign: 'right' }}, '', gst(totals.kumaran).toLocaleString(), '', gst(totals.santhosh).toLocaleString(), '', gst(totals.raghavendra).toLocaleString(), '']);
-      // SGST
-      rows.push([{ content: `SGST (${gstPercent}%)`, colSpan: 3, styles: { halign: 'right' }}, '', gst(totals.kumaran).toLocaleString(), '', gst(totals.santhosh).toLocaleString(), '', gst(totals.raghavendra).toLocaleString(), '']);
-      // Grand Total
-      const grand = (val) => (val + (gst(val) * 2)).toLocaleString();
-      rows.push([{ content: `Grand Total`, colSpan: 3, styles: { halign: 'right', fontStyle: 'bold' }}, '', grand(totals.kumaran), '', grand(totals.santhosh), '', grand(totals.raghavendra), '']);
-    }
+  // =========================
+  // GST CALCULATION
+  // =========================
+  const gst = (val) => Math.round(val * 0.09);
 
-    autoTable(doc, {
-      startY: 40,
-      head: [
-        [{ content: 'No', rowSpan: 2 }, { content: 'Description', rowSpan: 2 }, { content: 'Qty', rowSpan: 2 }, { content: 'Sri Kumaran', colSpan: 2 }, { content: 'Santhosh (3%)', colSpan: 2 }, { content: 'Raghavendra (2%)', colSpan: 2 }, { content: 'Remarks', rowSpan: 2 }],
-        ['Rate', 'Amount', 'Rate', 'Amount', 'Rate', 'Amount']
+  // Subtotal
+  rows.push([
+    '', 'Subtotal', '',
+    '', format(totals.kumaran),
+    '', format(totals.santhosh),
+    '', format(totals.raghavendra),
+    ''
+  ]);
+
+  // CGST
+  rows.push([
+    '', 'CGST 9%', '',
+    '', format(gst(totals.kumaran)),
+    '', format(gst(totals.santhosh)),
+    '', format(gst(totals.raghavendra)),
+    ''
+  ]);
+
+  // SGST
+  rows.push([
+    '', 'SGST 9%', '',
+    '', format(gst(totals.kumaran)),
+    '', format(gst(totals.santhosh)),
+    '', format(gst(totals.raghavendra)),
+    ''
+  ]);
+
+  // Grand Total
+  const grand_k = totals.kumaran + gst(totals.kumaran) * 2;
+  const grand_s = totals.santhosh + gst(totals.santhosh) * 2;
+  const grand_r = totals.raghavendra + gst(totals.raghavendra) * 2;
+
+  rows.push([
+    '', 'Grand Total', '',
+    '', format(grand_k),
+    '', format(grand_s),
+    '', format(grand_r),
+    ''
+  ]);
+
+  // =========================
+  // TABLE
+  // =========================
+  autoTable(doc, {
+    startY: 40,
+    head: [
+      [
+        { content: 'Sl.No', rowSpan: 2 },
+        { content: 'Description Of Work', rowSpan: 2 },
+        { content: 'Qty', rowSpan: 2 },
+        { content: 'Rate  Quoted  by Sri Kumaran Elec', colSpan: 2 },
+        { content: 'Rate  Quoted  by Santhosh Eps', colSpan: 2 },
+        { content: 'Rate  Quoted  by Raghavendra Eps', colSpan: 2 },
+        { content: 'Remarks', rowSpan: 2 }
       ],
-      body: rows,
-      theme: 'grid',
-      styles: { font: 'times', fontSize: 9, halign: 'center' },
-      headStyles: { fillColor: [240, 240, 240], textColor: 0, lineWidth: 0.1 },
-      columnStyles: { 1: { halign: 'left', cellWidth: 60 } }
-    });
+      ['Rate', 'Amount', 'Rate', 'Amount', 'Rate', 'Amount']
+    ],
+    body: rows,
+    theme: 'plain',
 
-    const lowest = Object.keys(totals).reduce((a, b) => totals[a] < totals[b] ? a : b);
-    doc.setFont("times", "bold").text(`Lowest Rate For: ${getCompanyNameById(lowest === 'kumaran' ? 1 : lowest === 'raghavendra' ? 2 : 3).toUpperCase()}`, 14, doc.lastAutoTable.finalY + 10);
-    window.open(doc.output('bloburl'));
-  }
+    styles: {
+      font: 'times',
+      fontSize: 9,
+      halign: 'center',
+      lineWidth: 0,
+      cellPadding: 2
+    },
+
+    columnStyles: {
+      1: { halign: 'left', cellWidth: 80 }
+    },
+
+    // Align GST & totals text right
+    didParseCell: function (data) {
+      const totalRowsStart = data.table.body.length - 4;
+
+      if (data.section === 'body' && data.row.index >= totalRowsStart) {
+        if (data.column.index === 1) {
+          data.cell.styles.halign = 'right';
+          data.cell.styles.fontStyle = 'bold';
+        }
+      }
+    },
+
+    // =========================
+    // BORDER CONTROL
+    // =========================
+    didDrawCell: (data) => {
+      const { x, y, width, height } = data.cell;
+      doc.setDrawColor(0);
+
+      // HEADER → FULL BORDER
+      if (data.section === 'head') {
+        doc.setLineWidth(0.3);
+        doc.rect(x, y, width, height);
+      }
+
+      // BODY → ONLY COLUMN LINES
+      if (data.section === 'body') {
+        doc.setLineWidth(0.2);
+
+        // vertical lines
+        doc.line(x, y, x, y + height);
+        doc.line(x + width, y, x + width, y + height);
+
+        // bottom border for last row
+        const isLastRow = data.row.index === data.table.body.length - 1;
+        if (isLastRow) {
+          doc.setLineWidth(0.3);
+          doc.line(x, y + height, x + width, y + height);
+        }
+      }
+    }
+  });
+
+  // =========================
+  // LOWEST VENDOR
+  // =========================
+  const lowest = Math.min(grand_k, grand_s, grand_r);
+  let lowestName = '';
+
+  if (lowest === grand_k) lowestName = 'SRI KUMARAN ELECTRICALS';
+  else if (lowest === grand_s) lowestName = 'SANTHOSH';
+  else lowestName = 'RAGHAVENDRA';
+
+  doc.setFont("times", "bold");
+  doc.text(`Lowest Rate For : ${lowestName}`, 100, doc.lastAutoTable.finalY + 10);
+
+  // =========================
+  // OUTPUT
+  // =========================
+  window.open(doc.output('bloburl'));
+};
 
 const generateComparativePDF = (data, bill) => {
-    const doc = new jsPDF({ orientation: 'landscape' })
-    doc.setFont("times", "bold").setFontSize(12)
-    doc.text('COMPARATIVE STATEMENT', 148, 15, { align: 'center' })
+  const doc = new jsPDF({ orientation: 'landscape' });
 
-    doc.setFontSize(10).setFont("times", "normal")
-    doc.text(`Name Of The Union     : ${bill.cust_address || ''}`, 14, 25)
-    doc.text(`Name Of The Panchayat : ${bill.cust_name || ''}`, 14, 31)
-    doc.text(`Name Of the Work      : ${bill.billing_description || bill.title || ''}`, 14, 37)
-
-    const rows = [];
-    const totals = { kumaran: 0, santhosh: 0, raghavendra: 0 };
-
-    data.forEach((item, index) => {
-      const baseRate = parseFloat(item.RATE) || 0;
-      const qtyStr = item.QTY;
-      const qtyNum = parseFloat(String(qtyStr).replace(/[^0-9.]/g, '')) || 0;
-
-      // Calculate the 3 columns manually to avoid NaN
-      const r_kumaran = Math.round(baseRate);
-      const a_kumaran = r_kumaran * qtyNum;
-      const r_santhosh = Math.round(baseRate * 1.03); // 3% Increase
-      const a_santhosh = r_santhosh * qtyNum;
-      const r_raghavendra = Math.round(baseRate * 1.02); // 2% Increase
-      const a_raghavendra = r_raghavendra * qtyNum;
-
-      totals.kumaran += a_kumaran;
-      totals.santhosh += a_santhosh;
-      totals.raghavendra += a_raghavendra;
-
-      rows.push([
-        index + 1, 
-        item.PATICULARS, 
-        qtyStr,
-        r_kumaran.toLocaleString(), a_kumaran.toLocaleString(),
-        r_santhosh.toLocaleString(), a_santhosh.toLocaleString(),
-        r_raghavendra.toLocaleString(), a_raghavendra.toLocaleString(),
-        '' // Remarks
-      ]);
+  // =========================
+  // FORMAT FUNCTION (.00)
+  // =========================
+  const format = (val) =>
+    Number(val).toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
     });
 
-    // Subtotal Row
+  // =========================
+  // TITLE
+  // =========================
+  doc.setFont("times", "bold").setFontSize(12);
+  doc.text('COMPARATIVE STATEMENT', 148, 15, { align: 'center' });
+
+  // =========================
+  // HEADER DETAILS
+  // =========================
+  doc.setFontSize(10).setFont("times", "normal");
+  doc.text(`Name Of The Union : ${bill.union || ''}`, 14, 25);
+  doc.text(`Name Of The Panchayat : ${bill.panchayat || ''}`, 14, 31);
+  doc.text(`Name Of the Work : ${bill.title || ''}`, 14, 37);
+  const rows = [];
+  const totals = { kumaran: 0, santhosh: 0, raghavendra: 0 };
+
+  // =========================
+  // DATA ROWS
+  // =========================
+  data.forEach((item, index) => {
+    const baseRate = parseFloat(item.RATE) || 0;
+    const qtyStr = item.QTY;
+    const qtyNum = parseFloat(String(qtyStr).replace(/[^0-9.]/g, '')) || 0;
+
+    const r_kumaran = Math.round(baseRate);
+    const a_kumaran = r_kumaran * qtyNum;
+
+    const r_santhosh = Math.round(baseRate * 1.03);
+    const a_santhosh = r_santhosh * qtyNum;
+
+    const r_raghavendra = Math.round(baseRate * 1.02);
+    const a_raghavendra = r_raghavendra * qtyNum;
+
+    totals.kumaran += a_kumaran;
+    totals.santhosh += a_santhosh;
+    totals.raghavendra += a_raghavendra;
+
     rows.push([
-      { content: 'Total', colSpan: 3, styles: { halign: 'right', fontStyle: 'bold' } },
-      '', totals.kumaran.toLocaleString(),
-      '', totals.santhosh.toLocaleString(),
-      '', totals.raghavendra.toLocaleString(),
+      index + 1,
+      item.PATICULARS,
+      qtyStr,
+      format(r_kumaran), format(a_kumaran),
+      format(r_santhosh), format(a_santhosh),
+      format(r_raghavendra), format(a_raghavendra),
       ''
     ]);
+  });
 
-    autoTable(doc, {
-      startY: 42,
-      head: [
-        [
-          { content: 'No', rowSpan: 2 }, 
-          { content: 'Description Of Work', rowSpan: 2 }, 
-          { content: 'Qty', rowSpan: 2 }, 
-          { content: 'Sri Kumaran Electricals', colSpan: 2 }, 
-          { content: 'Santhosh Enterprises', colSpan: 2 }, 
-          { content: 'Raghavendra Enterprises', colSpan: 2 }, 
-          { content: 'Remarks', rowSpan: 2 }
-        ],
-        ['Rate', 'Amount', 'Rate', 'Amount', 'Rate', 'Amount']
+  // =========================
+  // TOTAL ROW
+  // =========================
+  rows.push([
+    '', 'Total', '',
+    '', format(totals.kumaran),
+    '', format(totals.santhosh),
+    '', format(totals.raghavendra),
+    ''
+  ]);
+
+  // =========================
+  // TABLE
+  // =========================
+  autoTable(doc, {
+    startY: 42,
+    head: [
+      [
+        { content: 'No', rowSpan: 2 },
+        { content: 'Description Of Work', rowSpan: 2 },
+        { content: 'Qty', rowSpan: 2 },
+        { content: 'Rate  Quoted  by Sri Kumaran Elec', colSpan: 2 },
+        { content: 'Rate  Quoted  by Santhosh Eps', colSpan: 2 },
+        { content: 'Rate  Quoted  by Raghavendra Eps', colSpan: 2 },
+        { content: 'Remarks', rowSpan: 2 }
       ],
-      body: rows,
-      theme: 'grid',
-      styles: { font: 'times', fontSize: 9, halign: 'center', lineColor: [0, 0, 0], lineWidth: 0.1 },
-      headStyles: { fillColor: [240, 240, 240], textColor: 0 },
-      columnStyles: { 1: { halign: 'left', cellWidth: 60 } }
-    });
+      ['Rate', 'Amount', 'Rate', 'Amount', 'Rate', 'Amount']
+    ],
+    body: rows,
 
-    const lowest = Object.keys(totals).reduce((a, b) => totals[a] < totals[b] ? a : b);
-    doc.setFont("times", "bold").text(`Lowest Rate For: ${getCompanyNameById(lowest === 'kumaran' ? 1 : lowest === 'raghavendra' ? 2 : 3).toUpperCase()}`, 14, doc.lastAutoTable.finalY + 10);
-    
-    window.open(doc.output('bloburl'));
-  }
+    // ❌ remove default grid
+    theme: 'plain',
+
+    styles: {
+      font: 'times',
+      fontSize: 9,
+      halign: 'center',
+      lineWidth: 0,
+      cellPadding: 2
+    },
+
+    columnStyles: {
+      1: { halign: 'left', cellWidth: 60 }
+    },
+
+    // =========================
+    // ALIGN TOTAL TEXT RIGHT
+    // =========================
+    didParseCell: function (data) {
+      const lastRow = data.table.body.length - 1;
+
+      if (data.section === 'body' && data.row.index === lastRow) {
+        if (data.column.index === 1) {
+          data.cell.styles.halign = 'right';
+          data.cell.styles.fontStyle = 'bold';
+        }
+      }
+    },
+
+    // =========================
+    // BORDER CONTROL
+    // =========================
+    didDrawCell: (data) => {
+      const { x, y, width, height } = data.cell;
+      doc.setDrawColor(0);
+
+      // HEADER → FULL BORDER
+      if (data.section === 'head') {
+        doc.setLineWidth(0.3);
+        doc.rect(x, y, width, height);
+      }
+
+      // BODY → ONLY COLUMN LINES
+      if (data.section === 'body') {
+        doc.setLineWidth(0.2);
+
+        // vertical lines
+        doc.line(x, y, x, y + height);
+        doc.line(x + width, y, x + width, y + height);
+
+        // bottom border for last row
+        const isLastRow = data.row.index === data.table.body.length - 1;
+        if (isLastRow) {
+          doc.setLineWidth(0.3);
+          doc.line(x, y + height, x + width, y + height);
+        }
+      }
+    }
+  });
+
+  // =========================
+  // LOWEST VENDOR
+  // =========================
+  const lowest = Object.keys(totals).reduce((a, b) =>
+    totals[a] < totals[b] ? a : b
+  );
+
+  doc.setFont("times", "bold").text(
+    `Lowest Rate For: ${getCompanyNameById(
+      lowest === 'kumaran' ? 1 : lowest === 'raghavendra' ? 2 : 3
+    ).toUpperCase()}`,
+    100,
+    doc.lastAutoTable.finalY + 10
+  );
+
+  window.open(doc.output('bloburl'));
+};
 
 
 
