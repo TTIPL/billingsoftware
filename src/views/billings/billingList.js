@@ -229,7 +229,7 @@ const generateUnifiedPDF = (formData, gstPercent, settings) => {
       1: { cellWidth: 95, halign: 'left' },
       2: { cellWidth: 25, halign: 'center' },
       3: { cellWidth: 25, halign: 'center' },
-      4: { cellWidth: 30, halign: 'right' },
+      4: { cellWidth: 30, halign: 'center' },
     },
 
     // =========================
