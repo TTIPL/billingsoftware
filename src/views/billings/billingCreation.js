@@ -271,11 +271,11 @@ const handleAddProduct = () => {
                  </CCol>
                 <CCol md={4}>
                   <CFormLabel>Billing Description</CFormLabel>
-                  <CFormInput
-                    value={jsonData.title}
-                    onChange={(e) => setForm((p) => ({ ...p, description: e.target.value }))}
-                    placeholder="Enter billing description"
-                  />
+                 <CFormInput
+  value={jsonData.title}
+  onChange={(e) => setJsonData((prev) => ({ ...prev, title: e.target.value }))}
+  placeholder="Enter billing title"
+/>
                 </CCol>
                  
                 
