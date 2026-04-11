@@ -87,7 +87,9 @@ const generatePDFDownload = (row, orgId) => {
           total_amt: increasedAmount,
           company_name: getCompanyNameById(orgId),
           cust_name: rawData.title ,
-          officer: rawData.officer 
+          officer: rawData.officer,
+          panchayat: rawData.panchayat,
+          union: rawData.union 
         };
       });
 
@@ -139,6 +141,8 @@ const generateUnifiedPDF = (formData, gstPercent, settings) => {
   // =========================
   const headerLines = [
      customer.officer,
+       customer.panchayat,
+         customer.union,
     customer.cust_name,
   ];
 
