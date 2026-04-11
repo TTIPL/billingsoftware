@@ -495,7 +495,7 @@ const generateComparativePDFWithGST = (data, bill) => {
   else lowestName = 'RAGHAVENDRA';
 
   doc.setFont("times", "bold");
-  doc.text(`Lowest Rate For : ${lowestName}`, 100, doc.lastAutoTable.finalY + 10);
+  doc.text(`Lowest Rate For : ${lowestName}`, 100, doc.lastAutoTable.finalY + 5);
 
   // =========================
   // OUTPUT
@@ -567,7 +567,7 @@ const generateComparativePDF = (data, bill) => {
   // TOTAL ROW
   // =========================
   rows.push([
-    '', 'Total', '',
+    '', '', '',
     '', format(totals.kumaran),
     '', format(totals.santhosh),
     '', format(totals.raghavendra),
@@ -665,7 +665,7 @@ const generateComparativePDF = (data, bill) => {
       lowest === 'kumaran' ? 1 : lowest === 'raghavendra' ? 2 : 3
     ).toUpperCase()}`,
     100,
-    doc.lastAutoTable.finalY + 10
+    doc.lastAutoTable.finalY + 5
   );
 
   window.open(doc.output('bloburl'));
