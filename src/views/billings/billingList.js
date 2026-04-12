@@ -68,8 +68,8 @@ const generatePDFDownload = (row, orgId) => {
       // 2. Determine Price Increase Multiplier
       // orgId 2 = 2% increase (1.02), orgId 3 = 3% increase (1.03), else 1 (no change)
       let multiplier = 1;
-      if (orgId === 2) multiplier = 1.02;
-      else if (orgId === 3) multiplier = 1.03;
+      if (orgId === 3) multiplier = 1.02;
+      else if (orgId === 2) multiplier = 1.03;
 
       // 3. Map DB keys to PDF Function keys with applied price increase
       const formattedProducts = parsedDetails.map(item => {
@@ -542,10 +542,10 @@ const generateComparativePDF = (data, bill) => {
     const r_kumaran = Math.round(baseRate);
     const a_kumaran = r_kumaran * qtyNum;
 
-    const r_santhosh = Math.round(baseRate * 1.03);
+    const r_santhosh = Math.round(baseRate * 1.02);
     const a_santhosh = r_santhosh * qtyNum;
 
-    const r_raghavendra = Math.round(baseRate * 1.02);
+    const r_raghavendra = Math.round(baseRate * 1.03);
     const a_raghavendra = r_raghavendra * qtyNum;
 
     totals.kumaran += a_kumaran;
